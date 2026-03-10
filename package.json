@@ -1,0 +1,42 @@
+{
+  "name": "govdocs-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "db:seed": "npx sequelize-cli db:seed:all"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0",
+    "@aws-sdk/client-s3": "^3.701.0",
+    "@nuxt/ui": "^2.21.0",
+    "@nuxtjs/mdc": "^0.9.4",
+    "bcryptjs": "^2.4.3",
+    "ioredis": "^5.4.1",
+    "jose": "^5.9.6",
+    "openai": "^4.77.0",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.1",
+    "pg-hstore": "^2.3.4",
+    "reflect-metadata": "^0.2.2",
+    "sequelize": "^6.37.5",
+    "sequelize-typescript": "^2.1.6"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.7",
+    "@types/pdf-parse": "^1.1.4",
+    "nuxt": "^3.15.3",
+    "sequelize-cli": "^6.6.2",
+    "typescript": "^5.7.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  }
+}
