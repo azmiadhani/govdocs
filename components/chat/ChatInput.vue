@@ -5,7 +5,7 @@
       :rows="1"
       autoresize
       :max-rows="5"
-      placeholder="Ask about the documents..."
+      placeholder="Tanyakan tentang dokumen..."
       class="flex-1"
       :disabled="disabled"
       @keydown.enter.exact.prevent="submit"

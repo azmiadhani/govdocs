@@ -15,16 +15,23 @@
       <div v-if="isUser" class="text-sm whitespace-pre-wrap">{{ message.content }}</div>
       <MarkdownRenderer v-else :content="message.content" />
 
-      <!-- Sources -->
+      <!-- Sources: collapsible footnotes -->
       <div v-if="!isUser && message.sources?.length" class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-        <p class="text-xs text-gray-400 mb-1">Sources:</p>
-        <div class="flex flex-wrap gap-1">
+        <button
+          class="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          @click="sourcesOpen = !sourcesOpen"
+        >
+          <UIcon :name="sourcesOpen ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" class="w-3 h-3" />
+          {{ message.sources.length }} sumber referensi
+        </button>
+        <div v-if="sourcesOpen" class="mt-1.5 flex flex-col gap-1">
           <span
-            v-for="src in message.sources"
+            v-for="(src, i) in message.sources"
             :key="src.chunkId"
-            class="text-xs bg-white dark:bg-gray-700 rounded px-1.5 py-0.5 text-gray-500"
+            class="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5"
           >
-            {{ src.documentTitle }}, p.{{ src.pageNumber }}
+            <span class="text-gray-300 dark:text-gray-600 shrink-0">[{{ i + 1 }}]</span>
+            <span>{{ src.documentTitle }}, Halaman {{ src.pageNumber }}</span>
           </span>
         </div>
       </div>
@@ -37,4 +44,5 @@ import type { ChatMessage as ChatMessageType } from '~/types'
 
 const props = defineProps<{ message: ChatMessageType }>()
 const isUser = computed(() => props.message.role === 'user')
+const sourcesOpen = ref(false)
 </script>

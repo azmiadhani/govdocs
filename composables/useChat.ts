@@ -1,12 +1,12 @@
 import type { ChatMessage, ChatSession } from '~/types'
 
 export function useChat() {
-  const messages = ref<ChatMessage[]>([])
-  const sessions = ref<ChatSession[]>([])
-  const currentSession = ref<ChatSession | null>(null)
-  const isStreaming = ref(false)
-  const streamingText = ref('')
-  const error = ref<string | null>(null)
+  const messages = useState<ChatMessage[]>('chat.messages', () => [])
+  const sessions = useState<ChatSession[]>('chat.sessions', () => [])
+  const currentSession = useState<ChatSession | null>('chat.currentSession', () => null)
+  const isStreaming = useState<boolean>('chat.isStreaming', () => false)
+  const streamingText = useState<string>('chat.streamingText', () => '')
+  const error = useState<string | null>('chat.error', () => null)
 
   async function createSession(scope: 'global' | 'document', documentId?: string): Promise<ChatSession> {
     const title = documentId ? 'Document Chat' : 'Global Chat'

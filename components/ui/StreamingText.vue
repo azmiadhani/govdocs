@@ -1,6 +1,7 @@
 <template>
-  <div class="prose dark:prose-invert max-w-none prose-sm" v-html="rendered">
-    <span v-if="streaming" class="inline-block w-2 h-4 bg-primary-500 animate-pulse ml-0.5" />
+  <div class="prose dark:prose-invert max-w-none prose-sm">
+    <span v-html="rendered" />
+    <span v-if="streaming" class="inline-block w-2 h-4 bg-primary-500 animate-pulse ml-0.5 align-middle" />
   </div>
 </template>
 

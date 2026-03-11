@@ -16,7 +16,7 @@
     <!-- Empty state -->
     <div v-if="!messages.length && !streaming" class="flex flex-col items-center justify-center h-full text-gray-400 py-12">
       <UIcon name="i-heroicons-chat-bubble-left-right" class="w-12 h-12 mb-3 opacity-40" />
-      <p class="text-sm">Ask anything about the documents</p>
+      <p class="text-sm">Tanyakan apa saja tentang dokumen</p>
     </div>
   </div>
 </template>

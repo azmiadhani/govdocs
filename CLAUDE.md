@@ -38,3 +38,8 @@ OPENAI_API_KEY
 ANTHROPIC_API_KEY
 REDIS_URL
 STORAGE_PATH (local) or AWS_BUCKET, AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET_KEY
+
+## Tool Usage Rules
+
+- ALWAYS use the Edit tool directly to modify files. NEVER use Bash + python3/sed/awk to edit files.
+- ALWAYS use the Write tool to create new files. NEVER use Bash heredoc or echo redirection.

@@ -98,6 +98,7 @@ export interface ChatSession {
   documentId: string | null
   title: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface ChatMessage {

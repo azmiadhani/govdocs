@@ -6,7 +6,7 @@
         <UButton icon="i-heroicons-arrow-left" variant="ghost" size="sm" />
       </NuxtLink>
       <div>
-        <p class="text-xs text-gray-400 uppercase tracking-wide">Scoped Chat</p>
+        <p class="text-xs text-gray-400 uppercase tracking-wide">Chat Dokumen</p>
         <p class="font-semibold text-sm truncate max-w-md">{{ doc?.title ?? documentId }}</p>
       </div>
     </div>
