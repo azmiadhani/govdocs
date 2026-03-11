@@ -1,14 +1,9 @@
 <template>
-  <div class="flex h-[calc(100vh-64px)] overflow-hidden">
+  <div class="flex h-full overflow-hidden">
     <!-- Left sidebar: session history -->
     <div class="w-64 shrink-0 flex flex-col border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
       <div class="p-3 border-b border-gray-200 dark:border-gray-800">
-        <UButton
-          block
-          icon="i-heroicons-plus"
-          variant="soft"
-          @click="startNewSession"
-        >
+        <UButton block icon="i-heroicons-plus" variant="soft" @click="startNewSession">
           Chat Baru
         </UButton>
       </div>
@@ -17,15 +12,10 @@
         <div v-if="sessions.length === 0" class="px-3 py-6 text-center text-xs text-gray-400">
           Belum ada riwayat chat
         </div>
-        <button
-          v-for="s in sessions"
-          :key="s.id"
-          :class="[
-            'w-full text-left px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors',
-            currentSession?.id === s.id ? 'bg-primary-50 dark:bg-primary-900/20 border-l-2 border-primary-500' : '',
-          ]"
-          @click="selectSession(s)"
-        >
+        <button v-for="s in sessions" :key="s.id" :class="[
+          'w-full text-left px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors',
+          currentSession?.id === s.id ? 'bg-primary-50 dark:bg-primary-900/20 border-l-2 border-primary-500' : '',
+        ]" @click="selectSession(s)">
           <p class="text-sm font-medium truncate text-gray-800 dark:text-gray-200">{{ s.title }}</p>
           <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(s.updatedAt) }}</p>
         </button>
@@ -35,10 +25,7 @@
     <!-- Main chat area -->
     <div class="flex-1 flex flex-col overflow-hidden">
       <div v-if="currentSession" class="flex-1 overflow-hidden">
-        <ChatWindow
-          :session-id="currentSession.id"
-          :document-ids="scopedDocIds.length ? scopedDocIds : undefined"
-        />
+        <ChatWindow :session-id="currentSession.id" :document-ids="scopedDocIds.length ? scopedDocIds : undefined" />
       </div>
 
       <div v-else class="flex-1 flex items-center justify-center text-gray-400">
@@ -51,22 +38,17 @@
     </div>
 
     <!-- Right panel: document scope (collapsible) -->
-    <div
-      :class="[
-        'shrink-0 flex flex-col border-l border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 transition-all duration-200 overflow-hidden',
-        scopePanelOpen ? 'w-72' : 'w-10',
-      ]"
-    >
+    <div :class="[
+      'shrink-0 flex flex-col border-l border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 transition-all duration-200 overflow-hidden',
+      scopePanelOpen ? 'w-72' : 'w-10',
+    ]">
       <!-- Toggle button -->
       <button
         class="flex items-center justify-center h-10 w-10 shrink-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         :title="scopePanelOpen ? 'Tutup panel dokumen' : 'Pilih cakupan dokumen'"
-        @click="scopePanelOpen = !scopePanelOpen"
-      >
-        <UIcon
-          :name="scopePanelOpen ? 'i-heroicons-chevron-right' : 'i-heroicons-funnel'"
-          class="w-4 h-4 text-gray-500"
-        />
+        @click="scopePanelOpen = !scopePanelOpen">
+        <UIcon :name="scopePanelOpen ? 'i-heroicons-chevron-right' : 'i-heroicons-funnel'"
+          class="w-4 h-4 text-gray-500" />
       </button>
 
       <div v-if="scopePanelOpen" class="flex-1 overflow-y-auto p-3">
@@ -74,28 +56,16 @@
 
         <!-- All docs option -->
         <label class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer mb-1">
-          <input
-            type="checkbox"
-            :checked="scopedDocIds.length === 0"
-            class="rounded"
-            @change="scopedDocIds = []"
-          />
+          <input type="checkbox" :checked="scopedDocIds.length === 0" class="rounded" @change="scopedDocIds = []" />
           <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">Semua Dokumen</span>
         </label>
 
         <div class="border-t border-gray-200 dark:border-gray-700 my-2" />
 
-        <label
-          v-for="doc in allDocuments"
-          :key="doc.id"
-          class="flex items-start gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer mb-0.5"
-        >
-          <input
-            type="checkbox"
-            :checked="scopedDocIds.includes(doc.id)"
-            class="rounded mt-0.5"
-            @change="toggleDoc(doc.id)"
-          />
+        <label v-for="doc in allDocuments" :key="doc.id"
+          class="flex items-start gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer mb-0.5">
+          <input type="checkbox" :checked="scopedDocIds.includes(doc.id)" class="rounded mt-0.5"
+            @change="toggleDoc(doc.id)" />
           <span class="text-sm text-gray-700 dark:text-gray-300 leading-tight">{{ doc.title }}</span>
         </label>
 
