@@ -97,11 +97,23 @@ ${context}
 export function buildSummarizationPrompt(): string {
   return `Anda adalah analis ahli dokumen pemerintah Indonesia. Tugas Anda adalah menghasilkan analisis terstruktur dalam Bahasa Indonesia.
 
-Berikan respons Anda dalam format JSON berikut:
+Berikan respons Anda dalam format JSON berikut (TANPA markdown code fence, langsung JSON mentah):
 {
-  "summary": "Ringkasan komprehensif dalam format markdown sebanyak 3-5 paragraf yang mencakup tujuan dokumen, ketentuan utama, dan signifikansinya",
+  "summary": "<isi markdown di sini>",
   "keyPoints": ["Poin kunci 1", "Poin kunci 2", "Poin kunci 3", "Poin kunci 4", "Poin kunci 5"]
 }
 
-Ringkasan harus menyeluruh namun mudah dipahami. Poin kunci harus ringkas dan informatif (maksimal 5-7 poin).`
+Untuk field "summary", gunakan markdown yang kaya dengan struktur berikut:
+## Gambaran Umum
+Paragraf pembuka tentang tujuan dan konteks dokumen.
+
+## Ketentuan Utama
+- Poin ketentuan penting pertama
+- Poin ketentuan penting kedua
+
+## Signifikansi
+Paragraf penutup tentang dampak dan pentingnya dokumen.
+
+Untuk field "keyPoints": daftar 5-7 poin ringkas dan informatif.
+Seluruh teks harus dalam Bahasa Indonesia.`
 }
