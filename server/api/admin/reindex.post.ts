@@ -28,8 +28,13 @@ export default defineEventHandler(async (event) => {
   await doc.update({ pageCount })
 
   const chunks = chunkText(text)
-  const contents = chunks.map((c) => c.content)
-  const embeddings = await embedTexts(contents)
+
+  const EMBED_BATCH_SIZE = 100
+  const embeddings: number[][] = []
+  for (let i = 0; i < chunks.length; i += EMBED_BATCH_SIZE) {
+    const batch = chunks.slice(i, i + EMBED_BATCH_SIZE).map((c) => c.content)
+    embeddings.push(...(await embedTexts(batch)))
+  }
 
   await DocumentChunk.bulkCreate(
     chunks.map((chunk, i) => ({

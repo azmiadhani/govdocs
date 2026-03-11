@@ -37,9 +37,18 @@
         </div>
       </UFormGroup>
 
+      <UAlert v-if="error" color="red" :description="error" />
+
+      <UAlert
+        v-if="uploaded"
+        color="green"
+        title="Upload successful"
+        description="The document is being indexed in the background. Status will update to 'indexed' shortly."
+      />
+
       <div class="flex justify-end gap-2">
         <UButton type="button" variant="ghost" @click="emit('cancel')">Cancel</UButton>
-        <UButton type="submit" :loading="uploading" :disabled="!file || !form.title">
+        <UButton type="submit" :loading="uploading" :disabled="!file || !form.title || uploaded">
           Upload & Index
         </UButton>
       </div>
@@ -58,6 +67,8 @@ const { uploadDocument } = useDocuments()
 const fileInput = ref<HTMLInputElement>()
 const file = ref<File | null>(null)
 const uploading = ref(false)
+const error = ref('')
+const uploaded = ref(false)
 
 const form = reactive({
   title: '',
@@ -87,6 +98,7 @@ function onDrop(e: DragEvent) {
 async function handleSubmit() {
   if (!file.value) return
   uploading.value = true
+  error.value = ''
   try {
     const fd = new FormData()
     fd.append('file', file.value)
@@ -96,7 +108,10 @@ async function handleSubmit() {
     if (form.publishedAt) fd.append('publishedAt', form.publishedAt)
     fd.append('tags', JSON.stringify([]))
     const doc = await uploadDocument(fd)
-    emit('uploaded', doc.id)
+    uploaded.value = true
+    setTimeout(() => emit('uploaded', doc.id), 1500)
+  } catch (err: any) {
+    error.value = err.data?.message || 'Upload failed. Please try again.'
   } finally {
     uploading.value = false
   }

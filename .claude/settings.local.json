@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs/layouts/default.vue:*)",
+      "Bash(__NEW_LINE_a833bd478e0f7e9f__ cat:*)",
+      "Bash(/Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs/layouts/admin.vue:*)",
+      "Bash(/Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs/layouts/chat.vue:*)",
+      "Bash(__NEW_LINE_a833bd478e0f7e9f__ echo:*)"
+    ]
+  }
+}

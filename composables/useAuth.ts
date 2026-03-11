@@ -1,11 +1,14 @@
 import type { AuthUser } from '~/types'
 
-const user = ref<AuthUser | null>(null)
-
 export function useAuth() {
+  // useState is SSR-safe: scoped per request on server, hydrated + shared on client
+  const user = useState<AuthUser | null>('auth.user', () => null)
+
   async function fetchUser(): Promise<void> {
     try {
-      const data = await $fetch<{ user: AuthUser }>('/api/auth/me')
+      // useRequestFetch forwards cookies on SSR; falls back to regular fetch on client
+      const fetch = useRequestFetch()
+      const data = await fetch<{ user: AuthUser }>('/api/auth/me')
       user.value = data.user
     } catch {
       user.value = null

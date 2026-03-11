@@ -1,11 +1,10 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
-    <AppNav />
-    <div class="flex max-w-7xl mx-auto">
-      <AdminSidebar />
-      <main class="flex-1 px-6 py-8 min-h-[calc(100vh-64px)] overflow-auto">
+  <div class="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
+    <AppSidebar />
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-6xl mx-auto px-6 py-8">
         <slot />
-      </main>
-    </div>
+      </div>
+    </main>
   </div>
 </template>

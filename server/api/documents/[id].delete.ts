@@ -1,6 +1,6 @@
-import { unlink } from 'fs/promises'
-import { Document, DocumentChunk, AiSummary, getSequelize } from '~/server/models'
+import { Document, getSequelize } from '~/server/models'
 import { requireRole } from '~/server/utils/auth'
+import { deleteFile } from '~/server/utils/storage'
 import { cacheDelPattern, cacheDel } from '~/server/utils/redis'
 
 export default defineEventHandler(async (event) => {
@@ -12,12 +12,7 @@ export default defineEventHandler(async (event) => {
   const doc = await Document.findByPk(id)
   if (!doc) throw createError({ statusCode: 404, message: 'Document not found' })
 
-  // Delete file from disk
-  try {
-    await unlink(doc.filePath)
-  } catch {
-    // File may already be missing — continue
-  }
+  await deleteFile(doc.filePath)
 
   // Cascade deletes chunks + summary via DB constraints
   await doc.destroy()
