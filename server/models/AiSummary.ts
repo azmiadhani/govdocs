@@ -1,35 +1,24 @@
-import 'reflect-metadata'
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-} from 'sequelize-typescript'
-import { Document } from './Document'
+import { Model, DataTypes, type Sequelize } from 'sequelize'
 
-@Table({ tableName: 'ai_summaries', timestamps: false, underscored: true })
 export class AiSummary extends Model {
-  @Column({ type: DataType.UUID, defaultValue: DataType.UUIDV4, primaryKey: true })
   declare id: string
-
-  @ForeignKey(() => Document)
-  @Column({ type: DataType.UUID, unique: true, allowNull: false })
   declare documentId: string
-
-  @Column({ type: DataType.TEXT, allowNull: false })
   declare summary: string
-
-  @Column({ type: DataType.JSONB, defaultValue: [] })
   declare keyPoints: string[]
-
-  @Column({ type: DataType.TEXT })
   declare modelUsed: string
-
-  @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   declare generatedAt: Date
+}
 
-  @BelongsTo(() => Document)
-  declare document: Document
+export function initAiSummary(sequelize: Sequelize) {
+  AiSummary.init(
+    {
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+      documentId: { type: DataTypes.UUID, unique: true, allowNull: false },
+      summary: { type: DataTypes.TEXT, allowNull: false },
+      keyPoints: { type: DataTypes.JSONB, defaultValue: [] },
+      modelUsed: { type: DataTypes.TEXT },
+      generatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    },
+    { sequelize, tableName: 'ai_summaries', underscored: true, timestamps: false },
+  )
 }

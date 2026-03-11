@@ -1,39 +1,25 @@
-import 'reflect-metadata'
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  ForeignKey,
-  BelongsTo,
-} from 'sequelize-typescript'
-import { ChatSession } from './ChatSession'
+import { Model, DataTypes, type Sequelize } from 'sequelize'
 import type { ChunkSource } from '~/types'
 
-@Table({ tableName: 'chat_messages', timestamps: false, underscored: true })
 export class ChatMessage extends Model {
-  @Column({ type: DataType.UUID, defaultValue: DataType.UUIDV4, primaryKey: true })
   declare id: string
-
-  @ForeignKey(() => ChatSession)
-  @Column({ type: DataType.UUID, allowNull: false })
   declare sessionId: string
-
-  @Column({
-    type: DataType.ENUM('user', 'assistant'),
-    allowNull: false,
-  })
   declare role: 'user' | 'assistant'
-
-  @Column({ type: DataType.TEXT, allowNull: false })
   declare content: string
-
-  @Column({ type: DataType.JSONB, defaultValue: [] })
   declare sources: ChunkSource[]
-
-  @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   declare createdAt: Date
+}
 
-  @BelongsTo(() => ChatSession)
-  declare session: ChatSession
+export function initChatMessage(sequelize: Sequelize) {
+  ChatMessage.init(
+    {
+      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+      sessionId: { type: DataTypes.UUID, allowNull: false },
+      role: { type: DataTypes.ENUM('user', 'assistant'), allowNull: false },
+      content: { type: DataTypes.TEXT, allowNull: false },
+      sources: { type: DataTypes.JSONB, defaultValue: [] },
+      createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    },
+    { sequelize, tableName: 'chat_messages', underscored: true, timestamps: false },
+  )
 }
