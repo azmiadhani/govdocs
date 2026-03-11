@@ -4,7 +4,7 @@ import { extractPdfText } from '~/server/utils/pdf'
 import { callClaude, buildSummarizationPrompt } from '~/server/utils/claude'
 import { cacheGet, cacheSet } from '~/server/utils/redis'
 
-const MODEL = 'claude-sonnet-4-5'
+const MODEL = 'gpt-4o-mini'
 
 export default defineEventHandler(async (event) => {
   await requireAuth(event)

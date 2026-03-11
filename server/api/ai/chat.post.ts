@@ -3,7 +3,7 @@ import { requireAuth } from '~/server/utils/auth'
 import { embedText } from '~/server/utils/embeddings'
 import { vectorSearch } from '~/server/utils/vectorSearch'
 import { streamClaude, buildRAGSystemPrompt } from '~/server/utils/claude'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
+import type { MessageParam } from '~/server/utils/claude'
 import type { ChatRequestBody } from '~/types'
 
 export default defineEventHandler(async (event) => {

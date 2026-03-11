@@ -1,18 +1,20 @@
-import Anthropic from '@anthropic-ai/sdk'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
+import OpenAI from 'openai'
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 
-const MODEL = 'claude-sonnet-4-5'
+export type MessageParam = ChatCompletionMessageParam
 
-let anthropicClient: Anthropic | null = null
+const MODEL = 'gpt-4o-mini'
 
-function getAnthropic(): Anthropic {
-  if (anthropicClient) return anthropicClient
+let openaiClient: OpenAI | null = null
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set')
+function getOpenAI(): OpenAI {
+  if (openaiClient) return openaiClient
 
-  anthropicClient = new Anthropic({ apiKey })
-  return anthropicClient
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not set')
+
+  openaiClient = new OpenAI({ apiKey })
+  return openaiClient
 }
 
 export interface StreamClaudeOptions {
@@ -23,34 +25,29 @@ export interface StreamClaudeOptions {
 }
 
 export async function streamClaude(options: StreamClaudeOptions): Promise<ReadableStream> {
-  const { systemPrompt, messages, cacheSystemPrompt = true, maxTokens = 2048 } = options
-  const anthropic = getAnthropic()
+  const { systemPrompt, messages, maxTokens = 2048 } = options
+  const openai = getOpenAI()
 
-  const stream = anthropic.messages.stream({
+  const allMessages: MessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    ...messages,
+  ]
+
+  const stream = await openai.chat.completions.create({
     model: MODEL,
     max_tokens: maxTokens,
-    system: cacheSystemPrompt
-      ? [
-          {
-            type: 'text',
-            text: systemPrompt,
-            cache_control: { type: 'ephemeral' },
-          },
-        ]
-      : systemPrompt,
-    messages,
+    messages: allMessages,
+    stream: true,
   })
 
   return new ReadableStream({
     async start(controller) {
       try {
         for await (const chunk of stream) {
-          if (
-            chunk.type === 'content_block_delta' &&
-            chunk.delta.type === 'text_delta'
-          ) {
+          const text = chunk.choices[0]?.delta?.content
+          if (text) {
             controller.enqueue(
-              new TextEncoder().encode(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`)
+              new TextEncoder().encode(`data: ${JSON.stringify({ text })}\n\n`)
             )
           }
         }
@@ -68,18 +65,18 @@ export async function callClaude(
   userMessage: string,
   maxTokens = 4096
 ): Promise<string> {
-  const anthropic = getAnthropic()
+  const openai = getOpenAI()
 
-  const message = await anthropic.messages.create({
+  const response = await openai.chat.completions.create({
     model: MODEL,
     max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
+    ],
   })
 
-  const content = message.content[0]
-  if (content.type !== 'text') throw new Error('Unexpected response type from Claude')
-  return content.text
+  return response.choices[0]?.message?.content ?? ''
 }
 
 export function buildRAGSystemPrompt(context: string): string {
