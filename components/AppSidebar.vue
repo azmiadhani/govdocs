@@ -38,13 +38,13 @@
         </div>
         <UButton block variant="ghost" color="gray" icon="i-heroicons-arrow-right-on-rectangle" class="justify-start"
           @click="logout">
-          Sign out
+          Keluar
         </UButton>
       </template>
 
       <template v-else>
         <UButton block to="/login" icon="i-heroicons-arrow-right-on-rectangle">
-          Sign in
+          Masuk
         </UButton>
       </template>
     </div>
@@ -57,7 +57,7 @@ const route = useRoute()
 
 const navLinks = computed(() => [
   {
-    label: 'Documents',
+    label: 'Dokumen',
     icon: 'i-heroicons-document-duplicate',
     to: '/',
     active: route.path === '/' || route.path.startsWith('/documents'),
@@ -72,7 +72,7 @@ const navLinks = computed(() => [
 
 const adminLinks = computed(() => [
   {
-    label: 'Dashboard',
+    label: 'Dasbor',
     icon: 'i-heroicons-squares-2x2',
     to: '/admin',
     active: route.path.startsWith('/admin'),

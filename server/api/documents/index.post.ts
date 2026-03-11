@@ -82,5 +82,6 @@ async function ingestDocument(docId: string, filePath: string) {
   )
 
   await Document.update({ status: 'indexed' }, { where: { id: docId } })
+  await cacheDelPattern('docs:list:*')
   console.log(`[Ingest] Completed doc ${docId} — ${chunks.length} chunks`)
 }

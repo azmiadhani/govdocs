@@ -80,28 +80,28 @@ export async function callClaude(
 }
 
 export function buildRAGSystemPrompt(context: string): string {
-  return `You are an AI assistant specialized in analyzing Indonesian government documents. You answer questions based strictly on the provided document context.
+  return `Anda adalah asisten AI yang ahli dalam menganalisis dokumen pemerintah Indonesia. Jawab pertanyaan berdasarkan konteks dokumen yang diberikan.
 
-## Document Context
+## Konteks Dokumen
 
 ${context}
 
-## Instructions
-- Answer based only on the provided context
-- If the context doesn't contain enough information, say so clearly
-- Cite specific documents and page numbers when referencing information (e.g., "According to [Document Title], Page X...")
-- Respond in the same language as the user's question
-- Format responses with clear markdown structure when appropriate`
+## Instruksi
+- Jawab hanya berdasarkan konteks yang diberikan
+- Jika konteks tidak memuat informasi yang cukup, sampaikan dengan jelas
+- Sebutkan dokumen dan nomor halaman saat merujuk informasi (contoh: "Berdasarkan [Judul Dokumen], Halaman X...")
+- Selalu jawab dalam Bahasa Indonesia
+- Gunakan format markdown yang jelas dan terstruktur`
 }
 
 export function buildSummarizationPrompt(): string {
-  return `You are an expert analyst of Indonesian government documents. Your task is to produce a structured analysis.
+  return `Anda adalah analis ahli dokumen pemerintah Indonesia. Tugas Anda adalah menghasilkan analisis terstruktur dalam Bahasa Indonesia.
 
-Provide your response in the following JSON format:
+Berikan respons Anda dalam format JSON berikut:
 {
-  "summary": "A comprehensive markdown-formatted summary of 3-5 paragraphs covering the document's purpose, key provisions, and significance",
-  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"]
+  "summary": "Ringkasan komprehensif dalam format markdown sebanyak 3-5 paragraf yang mencakup tujuan dokumen, ketentuan utama, dan signifikansinya",
+  "keyPoints": ["Poin kunci 1", "Poin kunci 2", "Poin kunci 3", "Poin kunci 4", "Poin kunci 5"]
 }
 
-The summary should be thorough but accessible. Key points should be concise, actionable bullet points (5-7 items max).`
+Ringkasan harus menyeluruh namun mudah dipahami. Poin kunci harus ringkas dan informatif (maksimal 5-7 poin).`
 }

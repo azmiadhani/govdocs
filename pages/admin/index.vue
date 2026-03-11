@@ -2,10 +2,10 @@
   <div>
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-        <p class="text-sm text-gray-500">Manage documents and indexing</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dasbor Admin</h1>
+        <p class="text-sm text-gray-500">Kelola dokumen dan pengindeksan</p>
       </div>
-      <UButton icon="i-heroicons-plus" @click="showUpload = true">Upload Document</UButton>
+      <UButton icon="i-heroicons-plus" @click="showUpload = true">Unggah Dokumen</UButton>
     </div>
 
     <!-- Upload modal -->
@@ -27,7 +27,7 @@
     <!-- Recent documents table -->
     <UCard>
       <template #header>
-        <h2 class="font-semibold">All Documents</h2>
+        <h2 class="font-semibold">Semua Dokumen</h2>
       </template>
 
       <UTable
@@ -79,18 +79,18 @@ const showUpload = ref(false)
 const reindexing = ref<string | null>(null)
 
 const columns = [
-  { key: 'title', label: 'Title' },
-  { key: 'type', label: 'Type' },
-  { key: 'ministry', label: 'Ministry' },
+  { key: 'title', label: 'Judul' },
+  { key: 'type', label: 'Jenis' },
+  { key: 'ministry', label: 'Kementerian' },
   { key: 'status', label: 'Status' },
   { key: 'actions', label: '' },
 ]
 
 const stats = computed(() => [
-  { label: 'Total Documents', value: total.value },
-  { label: 'Indexed', value: documents.value.filter((d) => d.status === 'indexed').length },
-  { label: 'Pending', value: documents.value.filter((d) => d.status === 'pending').length },
-  { label: 'Errors', value: documents.value.filter((d) => d.status === 'error').length },
+  { label: 'Total Dokumen', value: total.value },
+  { label: 'Terindeks', value: documents.value.filter((d) => d.status === 'indexed').length },
+  { label: 'Tertunda', value: documents.value.filter((d) => d.status === 'pending').length },
+  { label: 'Error', value: documents.value.filter((d) => d.status === 'error').length },
 ])
 
 function statusColor(status: string) {
@@ -109,13 +109,20 @@ async function reindex(docId: string) {
 }
 
 async function confirmDelete(doc: Document) {
-  if (!confirm(`Delete "${doc.title}"? This cannot be undone.`)) return
+  if (!confirm(`Hapus "${doc.title}"? Tindakan ini tidak dapat dibatalkan.`)) return
   await deleteDocument(doc.id)
 }
 
 async function onUploaded() {
   showUpload.value = false
   await fetchDocuments({ limit: 100 })
+  // Poll until no documents are pending (indexing runs in background)
+  const poll = setInterval(async () => {
+    await fetchDocuments({ limit: 100 })
+    if (!documents.value.some((d) => d.status === 'pending')) {
+      clearInterval(poll)
+    }
+  }, 3000)
 }
 
 onMounted(() => fetchDocuments({ limit: 100 }))

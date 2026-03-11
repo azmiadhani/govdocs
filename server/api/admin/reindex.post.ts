@@ -3,7 +3,10 @@ import { requireRole } from '~/server/utils/auth'
 import { extractPdfText } from '~/server/utils/pdf'
 import { chunkText } from '~/server/utils/chunker'
 import { embedTexts } from '~/server/utils/embeddings'
-import { cacheDel } from '~/server/utils/redis'
+import { cacheDel, cacheSet } from '~/server/utils/redis'
+import { callClaude, buildSummarizationPrompt } from '~/server/utils/claude'
+
+const MODEL = 'gpt-4o-mini'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'admin')
@@ -47,6 +50,31 @@ export default defineEventHandler(async (event) => {
   )
 
   await doc.update({ status: 'indexed' })
+
+  // Generate summary after re-indexing
+  try {
+    const truncatedText = text.slice(0, 100_000)
+    const response = await callClaude(
+      buildSummarizationPrompt(),
+      `Tolong analisis dokumen berikut:\n\n${truncatedText}`,
+      4096
+    )
+    let summaryText: string
+    let keyPoints: string[]
+    try {
+      const jsonText = response.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+      const parsed = JSON.parse(jsonText)
+      summaryText = parsed.summary
+      keyPoints = parsed.keyPoints
+    } catch {
+      summaryText = response
+      keyPoints = []
+    }
+    const aiSummary = await AiSummary.create({ documentId, summary: summaryText, keyPoints, modelUsed: MODEL })
+    await cacheSet(`summary:${documentId}`, aiSummary, 3600)
+  } catch (err) {
+    console.error(`[Reindex] Summary generation failed for ${documentId}:`, err)
+  }
 
   return { ok: true, chunks: chunks.length }
 })

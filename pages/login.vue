@@ -6,7 +6,7 @@
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
           GovDocs <span class="text-primary-500">AI</span>
         </h1>
-        <p class="text-sm text-gray-500 mt-1">Sign in to your account</p>
+        <p class="text-sm text-gray-500 mt-1">Masuk ke akun Anda</p>
       </div>
 
       <UCard>
@@ -20,7 +20,7 @@
             />
           </UFormGroup>
 
-          <UFormGroup label="Password" name="password" required>
+          <UFormGroup label="Kata Sandi" name="password" required>
             <UInput
               v-model="form.password"
               type="password"
@@ -31,7 +31,7 @@
 
           <UAlert v-if="error" color="red" :description="error" />
 
-          <UButton type="submit" block :loading="loading">Sign In</UButton>
+          <UButton type="submit" block :loading="loading">Masuk</UButton>
         </UForm>
       </UCard>
     </div>
@@ -50,8 +50,8 @@ const error = ref('')
 
 function validate(state: typeof form) {
   const errors = []
-  if (!state.email) errors.push({ path: 'email', message: 'Required' })
-  if (!state.password) errors.push({ path: 'password', message: 'Required' })
+  if (!state.email) errors.push({ path: 'email', message: 'Wajib diisi' })
+  if (!state.password) errors.push({ path: 'password', message: 'Wajib diisi' })
   return errors
 }
 
@@ -63,7 +63,7 @@ async function onSubmit() {
     const redirect = (route.query.redirect as string) || '/'
     await navigateTo(redirect)
   } catch (err: any) {
-    error.value = err.data?.message || 'Invalid email or password'
+    error.value = err.data?.message || 'Email atau kata sandi tidak valid'
   } finally {
     loading.value = false
   }

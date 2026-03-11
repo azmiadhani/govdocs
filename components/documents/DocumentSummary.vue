@@ -4,7 +4,7 @@
       <div class="flex items-center justify-between">
         <h3 class="font-semibold flex items-center gap-2">
           <UIcon name="i-heroicons-sparkles" class="text-primary-500" />
-          AI Summary
+          Ringkasan AI
         </h3>
         <UButton
           v-if="!summary && !loading"
@@ -19,7 +19,7 @@
 
     <div v-if="loading" class="py-6 flex items-center justify-center gap-2 text-gray-400">
       <LoadingDots />
-      <span class="text-sm">Generating summary…</span>
+      <span class="text-sm">Membuat ringkasan...</span>
     </div>
 
     <div v-else-if="error" class="py-4">
@@ -31,7 +31,7 @@
     </div>
 
     <div v-else class="py-6 text-center text-sm text-gray-400">
-      Click "Generate" to create an AI summary for this document.
+      Klik "Buat" untuk membuat ringkasan AI dokumen ini.
     </div>
   </UCard>
 </template>

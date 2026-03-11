@@ -2,7 +2,7 @@
   <div class="flex flex-wrap items-center gap-3">
     <UInput
       v-model="localSearch"
-      placeholder="Search documents..."
+      placeholder="Cari dokumen..."
       icon="i-heroicons-magnifying-glass"
       class="w-64"
       @input="emit('update:search', localSearch)"
@@ -10,13 +10,13 @@
     <USelect
       v-model="localType"
       :options="typeOptions"
-      placeholder="All types"
+      placeholder="Semua jenis"
       class="w-40"
       @change="emit('update:type', localType)"
     />
     <UInput
       v-model="localMinistry"
-      placeholder="Ministry"
+      placeholder="Kementerian"
       class="w-44"
       @input="emit('update:ministry', localMinistry)"
     />
@@ -50,13 +50,13 @@ const localType = ref(props.type || '')
 const localMinistry = ref(props.ministry || '')
 
 const typeOptions = [
-  { label: 'All Types', value: '' },
-  { label: 'Law', value: 'law' },
-  { label: 'Regulation', value: 'regulation' },
-  { label: 'Decree', value: 'decree' },
-  { label: 'Circular', value: 'circular' },
-  { label: 'Guideline', value: 'guideline' },
-  { label: 'Other', value: 'other' },
+  { label: 'Semua Jenis', value: '' },
+  { label: 'Undang-Undang', value: 'law' },
+  { label: 'Peraturan', value: 'regulation' },
+  { label: 'Keputusan', value: 'decree' },
+  { label: 'Surat Edaran', value: 'circular' },
+  { label: 'Pedoman', value: 'guideline' },
+  { label: 'Lainnya', value: 'other' },
 ]
 
 const hasFilters = computed(() => localSearch.value || localType.value || localMinistry.value)

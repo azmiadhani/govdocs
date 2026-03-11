@@ -36,17 +36,18 @@ export default defineEventHandler(async (event) => {
   const truncatedText = text.slice(0, 100_000) // ~25k tokens max
 
   const systemPrompt = buildSummarizationPrompt()
-  const response = await callClaude(systemPrompt, `Please analyze this document:\n\n${truncatedText}`, 4096)
+  const response = await callClaude(systemPrompt, `Tolong analisis dokumen berikut:\n\n${truncatedText}`, 4096)
 
   let summary: string
   let keyPoints: string[]
 
   try {
-    const parsed = JSON.parse(response)
+    // Strip markdown code fences that gpt-4o-mini sometimes wraps around JSON
+    const jsonText = response.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+    const parsed = JSON.parse(jsonText)
     summary = parsed.summary
     keyPoints = parsed.keyPoints
   } catch {
-    // Fallback if Claude didn't return valid JSON
     summary = response
     keyPoints = []
   }

@@ -3,7 +3,7 @@
     <template #header>
       <h3 class="font-semibold flex items-center gap-2">
         <UIcon name="i-heroicons-list-bullet" class="text-primary-500" />
-        Key Points
+        Poin Utama
       </h3>
     </template>
 

@@ -9,7 +9,7 @@
     <div v-else-if="doc">
       <!-- Breadcrumb -->
       <UBreadcrumb
-        :links="[{ label: 'Documents', to: '/' }, { label: doc.title }]"
+        :links="[{ label: 'Dokumen' }, { label: doc.title }]"
         class="mb-6"
       />
 
@@ -26,23 +26,23 @@
 
             <dl class="space-y-3 text-sm">
               <div>
-                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Type</dt>
+                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Jenis</dt>
                 <dd class="font-medium capitalize">{{ doc.type }}</dd>
               </div>
               <div v-if="doc.ministry">
-                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Ministry</dt>
+                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Kementerian</dt>
                 <dd class="font-medium">{{ doc.ministry }}</dd>
               </div>
               <div v-if="doc.publishedAt">
-                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Published</dt>
+                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Diterbitkan</dt>
                 <dd class="font-medium">{{ formatDate(doc.publishedAt) }}</dd>
               </div>
               <div v-if="doc.pageCount">
-                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Pages</dt>
+                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Halaman</dt>
                 <dd class="font-medium">{{ doc.pageCount }}</dd>
               </div>
               <div v-if="doc.tags?.length">
-                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Tags</dt>
+                <dt class="text-gray-400 text-xs uppercase tracking-wide mb-0.5">Label</dt>
                 <dd class="flex flex-wrap gap-1 mt-1">
                   <UBadge v-for="tag in doc.tags" :key="tag" :label="tag" variant="outline" size="xs" color="gray" />
                 </dd>
@@ -57,7 +57,7 @@
                   size="sm"
                   block
                 >
-                  Chat about this doc
+                  Chat tentang dokumen ini
                 </UButton>
               </div>
             </template>
@@ -74,7 +74,7 @@
     </div>
 
     <div v-else>
-      <UAlert color="red" title="Document not found" />
+      <UAlert color="red" title="Dokumen tidak ditemukan" />
     </div>
   </div>
 </template>

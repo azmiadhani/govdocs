@@ -1,28 +1,28 @@
 <template>
   <UCard>
     <template #header>
-      <h3 class="font-semibold">Upload Document</h3>
+      <h3 class="font-semibold">Unggah Dokumen</h3>
     </template>
 
     <UForm :state="form" class="space-y-4" @submit="handleSubmit">
-      <UFormGroup label="Title" required>
-        <UInput v-model="form.title" placeholder="Document title" />
+      <UFormGroup label="Judul" required>
+        <UInput v-model="form.title" placeholder="Judul dokumen" />
       </UFormGroup>
 
       <div class="grid grid-cols-2 gap-4">
-        <UFormGroup label="Type" required>
+        <UFormGroup label="Jenis" required>
           <USelect v-model="form.type" :options="typeOptions" />
         </UFormGroup>
-        <UFormGroup label="Ministry">
-          <UInput v-model="form.ministry" placeholder="Issuing ministry" />
+        <UFormGroup label="Kementerian">
+          <UInput v-model="form.ministry" placeholder="Kementerian penerbit" />
         </UFormGroup>
       </div>
 
-      <UFormGroup label="Published Date">
+      <UFormGroup label="Tanggal Terbit">
         <UInput v-model="form.publishedAt" type="date" />
       </UFormGroup>
 
-      <UFormGroup label="PDF File" required>
+      <UFormGroup label="File PDF" required>
         <div
           class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center cursor-pointer hover:border-primary-400 transition-colors"
           @click="fileInput?.click()"
@@ -31,7 +31,7 @@
         >
           <UIcon name="i-heroicons-cloud-arrow-up" class="w-8 h-8 mx-auto mb-2 text-gray-400" />
           <p class="text-sm text-gray-500">
-            {{ file ? file.name : 'Click or drag PDF here' }}
+            {{ file ? file.name : 'Klik atau seret file PDF ke sini' }}
           </p>
           <input ref="fileInput" type="file" accept=".pdf" class="hidden" @change="onFileChange" />
         </div>
@@ -42,12 +42,12 @@
       <UAlert
         v-if="uploaded"
         color="green"
-        title="Upload successful"
-        description="The document is being indexed in the background. Status will update to 'indexed' shortly."
+        title="Unggah berhasil"
+        description="Dokumen sedang diindeks di latar belakang. Status akan diperbarui menjadi 'terindeks' sebentar lagi."
       />
 
       <div class="flex justify-end gap-2">
-        <UButton type="button" variant="ghost" @click="emit('cancel')">Cancel</UButton>
+        <UButton type="button" variant="ghost" @click="emit('cancel')">Batal</UButton>
         <UButton type="submit" :loading="uploading" :disabled="!file || !form.title || uploaded">
           Upload & Index
         </UButton>
@@ -78,12 +78,12 @@ const form = reactive({
 })
 
 const typeOptions = [
-  { label: 'Law', value: 'law' },
-  { label: 'Regulation', value: 'regulation' },
-  { label: 'Decree', value: 'decree' },
-  { label: 'Circular', value: 'circular' },
-  { label: 'Guideline', value: 'guideline' },
-  { label: 'Other', value: 'other' },
+  { label: 'Undang-Undang', value: 'law' },
+  { label: 'Peraturan', value: 'regulation' },
+  { label: 'Keputusan', value: 'decree' },
+  { label: 'Surat Edaran', value: 'circular' },
+  { label: 'Pedoman', value: 'guideline' },
+  { label: 'Lainnya', value: 'other' },
 ]
 
 function onFileChange(e: Event) {
@@ -111,7 +111,7 @@ async function handleSubmit() {
     uploaded.value = true
     setTimeout(() => emit('uploaded', doc.id), 1500)
   } catch (err: any) {
-    error.value = err.data?.message || 'Upload failed. Please try again.'
+    error.value = err.data?.message || 'Unggah gagal. Silakan coba lagi.'
   } finally {
     uploading.value = false
   }

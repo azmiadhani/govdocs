@@ -2,8 +2,8 @@
   <div>
     <!-- Page header -->
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Document Library</h1>
-      <p class="text-sm text-gray-500">{{ total }} government documents</p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Perpustakaan Dokumen</h1>
+      <p class="text-sm text-gray-500">{{ total }} dokumen pemerintah</p>
     </div>
 
     <!-- Filters -->

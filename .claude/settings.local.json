@@ -6,7 +6,14 @@
       "Bash(/Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs/layouts/admin.vue:*)",
       "Bash(/Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs/layouts/chat.vue:*)",
       "Bash(__NEW_LINE_a833bd478e0f7e9f__ echo:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npm install:*)",
+      "Bash(sed -i '' 's/Sign in to your account/Masuk ke akun Anda/' pages/login.vue)",
+      "Bash(sed -i '' 's/label=\"\"Email\"\"/label=\"\"Email\"\"/' pages/login.vue)",
+      "Bash(sed -i '' 's/label=\"\"Password\"\"/label=\"\"Kata Sandi\"\"/' pages/login.vue)",
+      "Bash(sed -i '' 's/>Sign In</>Masuk</' pages/login.vue)",
+      "Bash(sed -i '' \"s/Invalid email or password/Email atau kata sandi tidak valid/\" pages/login.vue)",
+      "Bash(sed -i '' \"s/message: ''Required''/message: ''Wajib diisi''/\" pages/login.vue)"
     ]
   }
 }
