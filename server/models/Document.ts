@@ -12,6 +12,7 @@ export class Document extends Model {
   declare status: 'pending' | 'indexed' | 'error'
   declare tags: string[]
   declare uploadedBy: string
+  declare viewCount: number
   declare createdAt: Date
   declare updatedAt: Date
 }
@@ -34,6 +35,7 @@ export function initDocument(sequelize: Sequelize) {
       status: { type: DataTypes.ENUM('pending', 'indexed', 'error'), allowNull: false, defaultValue: 'pending' },
       tags: { type: DataTypes.ARRAY(DataTypes.TEXT), defaultValue: [] },
       uploadedBy: { type: DataTypes.UUID, allowNull: true },
+      viewCount: { type: DataTypes.INTEGER, defaultValue: 0 },
     },
     { sequelize, tableName: 'documents', underscored: true },
   )

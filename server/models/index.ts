@@ -5,6 +5,7 @@ import { DocumentChunk, initDocumentChunk } from './DocumentChunk'
 import { AiSummary, initAiSummary } from './AiSummary'
 import { ChatSession, initChatSession } from './ChatSession'
 import { ChatMessage, initChatMessage } from './ChatMessage'
+import { SearchLog, initSearchLog } from './SearchLog'
 
 let sequelizeInstance: Sequelize | null = null
 
@@ -36,6 +37,7 @@ export function getSequelize(): Sequelize {
   initAiSummary(sequelizeInstance)
   initChatSession(sequelizeInstance)
   initChatMessage(sequelizeInstance)
+  initSearchLog(sequelizeInstance)
 
   // Associations
   User.hasMany(Document, { foreignKey: 'uploadedBy', as: 'documents' })
@@ -57,4 +59,4 @@ export function getSequelize(): Sequelize {
   return sequelizeInstance
 }
 
-export { User, Document, DocumentChunk, AiSummary, ChatSession, ChatMessage }
+export { User, Document, DocumentChunk, AiSummary, ChatSession, ChatMessage, SearchLog }

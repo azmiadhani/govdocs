@@ -33,6 +33,7 @@ export interface Document {
   filePath: string
   fileSize: number
   pageCount: number
+  viewCount: number
   publishedAt: string | null
   status: DocumentStatus
   tags: string[]
@@ -144,4 +145,26 @@ export interface SummarizeBody {
 
 export interface ReindexBody {
   documentId: string
+}
+
+// Public API
+export interface PublicStats {
+  totalDocuments: number
+  totalQuestionsAsked: number
+  totalMinistries: number
+  totalTypes: number
+  totalPagesIndexed: number
+  totalSummaries: number
+}
+
+export interface PopularSearch {
+  query: string
+  type: 'searched' | 'viewed' | 'default'
+}
+
+export interface SearchLog {
+  id: string
+  query: string
+  resultCount: number
+  createdAt: string
 }
