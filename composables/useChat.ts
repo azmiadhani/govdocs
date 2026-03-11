@@ -9,7 +9,7 @@ export function useChat() {
   const error = useState<string | null>('chat.error', () => null)
 
   async function createSession(scope: 'global' | 'document', documentId?: string): Promise<ChatSession> {
-    const title = documentId ? 'Document Chat' : 'Global Chat'
+    const title = 'Chat Baru'
     const data = await $fetch<{ session: ChatSession }>('/api/chat/sessions', {
       method: 'POST',
       body: { scope, documentId: documentId ?? null, title },
@@ -32,16 +32,27 @@ export function useChat() {
     sessions.value = data.sessions
   }
 
+  async function updateSessionTitle(sessionId: string, title: string): Promise<void> {
+    try {
+      await $fetch(`/api/chat/sessions/${sessionId}`, { method: 'PATCH', body: { title } })
+      if (currentSession.value?.id === sessionId) currentSession.value.title = title
+      const s = sessions.value.find((s) => s.id === sessionId)
+      if (s) s.title = title
+    } catch {}
+  }
+
   async function sendMessage(query: string, documentIds?: string[]): Promise<void> {
     if (!currentSession.value) throw new Error('No active chat session')
     if (!query.trim() || isStreaming.value) return
 
     error.value = null
+    const isFirstMessage = messages.value.length === 0
+    const sessionId = currentSession.value.id
 
     // Optimistic user message
     const userMsg: ChatMessage = {
       id: `temp-${Date.now()}`,
-      sessionId: currentSession.value.id,
+      sessionId,
       role: 'user',
       content: query,
       sources: [],
@@ -58,7 +69,7 @@ export function useChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query,
-          sessionId: currentSession.value.id,
+          sessionId,
           documentIds: documentIds ?? null,
         }),
       })
@@ -93,15 +104,21 @@ export function useChat() {
       if (streamingText.value) {
         messages.value.push({
           id: `assistant-${Date.now()}`,
-          sessionId: currentSession.value.id,
+          sessionId,
           role: 'assistant',
           content: streamingText.value,
           sources: [],
           createdAt: new Date().toISOString(),
         })
       }
+
+      // Auto-title session from first user message
+      if (isFirstMessage) {
+        const title = query.length > 60 ? query.slice(0, 60).trimEnd() + '…' : query
+        await updateSessionTitle(sessionId, title)
+      }
     } catch (err: any) {
-      error.value = err.message || 'Chat failed'
+      error.value = err.message || 'Chat gagal'
     } finally {
       isStreaming.value = false
       streamingText.value = ''
