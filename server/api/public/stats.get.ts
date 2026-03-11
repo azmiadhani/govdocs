@@ -3,7 +3,7 @@ import { getSequelize, Document, AiSummary, ChatMessage } from '~/server/models'
 export default defineEventHandler(async () => {
   const sequelize = getSequelize()
 
-  const [docStats, questionsAsked, summaryCount] = await Promise.all([
+  const [docStats, typeBreakdown, questionsAsked, summaryCount] = await Promise.all([
     sequelize.query<{
       total_documents: string
       total_ministries: string
@@ -16,6 +16,10 @@ export default defineEventHandler(async () => {
         COUNT(DISTINCT type) FILTER (WHERE status = 'indexed') AS total_types,
         COALESCE(SUM(page_count) FILTER (WHERE status = 'indexed'), 0) AS total_pages_indexed
       FROM documents`,
+      { type: 'SELECT' as any },
+    ),
+    sequelize.query<{ type: string; count: string }>(
+      `SELECT type, COUNT(*) as count FROM documents WHERE status = 'indexed' GROUP BY type ORDER BY count DESC`,
       { type: 'SELECT' as any },
     ),
     ChatMessage.count({ where: { role: 'user' } }),
@@ -31,5 +35,6 @@ export default defineEventHandler(async () => {
     totalTypes: parseInt(row.total_types) || 0,
     totalPagesIndexed: parseInt(row.total_pages_indexed) || 0,
     totalSummaries: summaryCount,
+    typeBreakdown: typeBreakdown.map(r => ({ type: r.type, count: parseInt(r.count) || 0 })),
   }
 })

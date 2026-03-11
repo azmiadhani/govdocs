@@ -61,6 +61,50 @@
       </div>
     </section>
 
+    <!-- Telusuri berdasarkan Kategori -->
+    <section v-if="categoryItems.length" class="py-16 bg-white dark:bg-gray-900">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Telusuri berdasarkan Kategori</h2>
+          <p class="text-gray-500 dark:text-gray-400">Temukan dokumen yang Anda cari berdasarkan jenis regulasi</p>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          <CategoryCard
+            v-for="cat in categoryItems"
+            :key="cat.type"
+            :type="cat.type"
+            :label="cat.label"
+            :count="cat.count"
+            :icon="cat.icon"
+            :color="cat.color"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- Dokumen Terbaru -->
+    <section v-if="latestDocs.length" class="py-16 bg-gray-50 dark:bg-gray-950">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-10">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">Dokumen Terbaru</h2>
+            <p class="text-gray-500 dark:text-gray-400">Dokumen yang baru saja ditambahkan ke platform</p>
+          </div>
+          <NuxtLink to="/documents?sort=newest" class="hidden sm:block">
+            <UButton variant="ghost" size="sm" icon="i-heroicons-arrow-right" trailing>Lihat Semua</UButton>
+          </NuxtLink>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <DocumentCard v-for="doc in latestDocs" :key="doc.id" :doc="doc" />
+        </div>
+        <div class="mt-6 text-center sm:hidden">
+          <NuxtLink to="/documents?sort=newest">
+            <UButton variant="outline" size="sm">Lihat Semua Dokumen</UButton>
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA -->
     <section class="py-16 bg-white dark:bg-gray-900">
       <div class="max-w-3xl mx-auto px-4 text-center">
@@ -70,9 +114,9 @@
           <NuxtLink to="/documents">
             <UButton size="lg" icon="i-heroicons-magnifying-glass">Jelajahi Dokumen</UButton>
           </NuxtLink>
-          <NuxtLink :to="isLoggedIn ? '/chat' : '/login?redirect=/chat'">
+          <NuxtLink :to="isLoggedIn ? '/chat' : '/chat-ai'">
             <UButton size="lg" variant="outline" icon="i-heroicons-chat-bubble-left-right">
-              {{ isLoggedIn ? 'Mulai Chat AI' : 'Masuk untuk Chat AI' }}
+              {{ isLoggedIn ? 'Mulai Chat AI' : 'Coba Chat AI' }}
             </UButton>
           </NuxtLink>
         </div>
@@ -82,21 +126,45 @@
 </template>
 
 <script setup lang="ts">
+import type { Document } from '~/types'
+
 definePageMeta({ layout: 'public' })
 
 const { isLoggedIn } = useAuth()
 const searchQuery = ref('')
 
-const [{ data: statsData }, { data: popularData }] = await Promise.all([
+const TYPE_META: Record<string, { label: string; icon: string; color: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'indigo' }> = {
+  law: { label: 'Undang-Undang', icon: 'i-heroicons-scale', color: 'blue' },
+  regulation: { label: 'Peraturan', icon: 'i-heroicons-document-text', color: 'green' },
+  decree: { label: 'Keputusan', icon: 'i-heroicons-stamp', color: 'purple' },
+  circular: { label: 'Surat Edaran', icon: 'i-heroicons-envelope', color: 'orange' },
+  guideline: { label: 'Pedoman', icon: 'i-heroicons-book-open', color: 'indigo' },
+  other: { label: 'Lainnya', icon: 'i-heroicons-folder', color: 'red' },
+}
+
+const [{ data: statsData }, { data: popularData }, { data: latestData }] = await Promise.all([
   useAsyncData('public-stats', () => $fetch<any>('/api/public/stats')),
   useAsyncData('popular-searches', () => $fetch<any[]>('/api/public/popular-searches')),
+  useAsyncData('latest-docs', () => $fetch<Document[]>('/api/public/documents/latest')),
 ])
 
 const stats = computed(() => statsData.value || {
   totalDocuments: 0, totalQuestionsAsked: 0, totalMinistries: 0,
   totalTypes: 0, totalPagesIndexed: 0, totalSummaries: 0,
+  typeBreakdown: [],
 })
 const popularSearches = computed(() => popularData.value || [])
+const latestDocs = computed(() => latestData.value || [])
+
+const categoryItems = computed(() =>
+  (stats.value.typeBreakdown || []).map((t: { type: string; count: number }) => ({
+    type: t.type,
+    count: t.count,
+    label: TYPE_META[t.type]?.label || t.type,
+    icon: TYPE_META[t.type]?.icon || 'i-heroicons-document',
+    color: TYPE_META[t.type]?.color || 'blue',
+  })),
+)
 
 function onSearch() {
   if (searchQuery.value.trim()) {

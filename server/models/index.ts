@@ -6,6 +6,8 @@ import { AiSummary, initAiSummary } from './AiSummary'
 import { ChatSession, initChatSession } from './ChatSession'
 import { ChatMessage, initChatMessage } from './ChatMessage'
 import { SearchLog, initSearchLog } from './SearchLog'
+import { Feedback, initFeedback } from './Feedback'
+import { Changelog, initChangelog } from './Changelog'
 
 let sequelizeInstance: Sequelize | null = null
 
@@ -38,6 +40,8 @@ export function getSequelize(): Sequelize {
   initChatSession(sequelizeInstance)
   initChatMessage(sequelizeInstance)
   initSearchLog(sequelizeInstance)
+  initFeedback(sequelizeInstance)
+  initChangelog(sequelizeInstance)
 
   // Associations
   User.hasMany(Document, { foreignKey: 'uploadedBy', as: 'documents' })
@@ -59,4 +63,4 @@ export function getSequelize(): Sequelize {
   return sequelizeInstance
 }
 
-export { User, Document, DocumentChunk, AiSummary, ChatSession, ChatMessage, SearchLog }
+export { User, Document, DocumentChunk, AiSummary, ChatSession, ChatMessage, SearchLog, Feedback, Changelog }

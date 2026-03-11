@@ -52,6 +52,8 @@ export default defineNuxtConfig({
   routeRules: {
     '/admin/**': { appMiddleware: ['auth', 'admin'] },
     '/chat/**': { appMiddleware: ['auth'] },
+    '/about': { prerender: true },
+    '/faq': { prerender: true },
   },
 
   compatibilityDate: '2024-11-01',
