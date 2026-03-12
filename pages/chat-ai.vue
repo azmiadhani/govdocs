@@ -153,5 +153,5 @@ const steps = [
   },
 ]
 
-useHead({ title: 'Chat AI | GovDocs AI' })
+useHead({ title: 'Chat AI' })
 </script>

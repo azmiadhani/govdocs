@@ -67,5 +67,5 @@ const contactInfo = [
   { label: 'Lokasi', icon: 'i-heroicons-map-pin', value: 'Indonesia' },
 ]
 
-useHead({ title: 'Kontak | GovDocs AI' })
+useHead({ title: 'Kontak' })
 </script>

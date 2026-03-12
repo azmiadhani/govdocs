@@ -236,7 +236,7 @@ function formatSize(bytes: number) {
 }
 
 useHead(() => ({
-  title: doc.value ? `${doc.value.title} | GovDocs AI` : 'GovDocs AI',
+  title: doc.value ? doc.value.title : 'Dokumen',
   meta: doc.value && summary.value
     ? [{ name: 'description', content: summary.value.slice(0, 160) }]
     : [],

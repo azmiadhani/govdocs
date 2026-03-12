@@ -1,6 +1,13 @@
 import { getSequelize, Document, AiSummary, ChatMessage } from '~/server/models'
+import { cacheGet, cacheSet } from '~/server/utils/redis'
+
+const CACHE_KEY = 'public:stats'
+const CACHE_TTL = 1800
 
 export default defineEventHandler(async () => {
+  const cached = await cacheGet(CACHE_KEY)
+  if (cached) return cached
+
   const sequelize = getSequelize()
 
   const [docStats, typeBreakdown, questionsAsked, summaryCount] = await Promise.all([
@@ -28,7 +35,7 @@ export default defineEventHandler(async () => {
 
   const row = docStats[0]
 
-  return {
+  const result = {
     totalDocuments: parseInt(row.total_documents) || 0,
     totalQuestionsAsked: questionsAsked,
     totalMinistries: parseInt(row.total_ministries) || 0,
@@ -37,4 +44,7 @@ export default defineEventHandler(async () => {
     totalSummaries: summaryCount,
     typeBreakdown: typeBreakdown.map(r => ({ type: r.type, count: parseInt(r.count) || 0 })),
   }
+
+  await cacheSet(CACHE_KEY, result, CACHE_TTL)
+  return result
 })

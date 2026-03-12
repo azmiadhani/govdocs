@@ -1,5 +1,6 @@
 import { requireRole } from '~/server/utils/auth'
 import { Changelog } from '~/server/models'
+import { cacheDel } from '~/server/utils/redis'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'admin')
@@ -20,5 +21,6 @@ export default defineEventHandler(async (event) => {
     releasedAt,
   })
 
+  await cacheDel('public:changelog')
   return entry.toJSON()
 })

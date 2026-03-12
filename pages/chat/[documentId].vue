@@ -42,6 +42,6 @@ onMounted(async () => {
 })
 
 useHead(() => ({
-  title: doc.value ? `Chat: ${doc.value.title} | GovDocs AI` : 'GovDocs AI',
+  title: doc.value ? `Chat: ${doc.value.title}` : 'Chat',
 }))
 </script>

@@ -3,7 +3,7 @@ import { requireRole } from '~/server/utils/auth'
 import { extractPdfText } from '~/server/utils/pdf'
 import { chunkText } from '~/server/utils/chunker'
 import { embedTexts } from '~/server/utils/embeddings'
-import { cacheDel, cacheSet } from '~/server/utils/redis'
+import { cacheDel, cacheSet, cacheDelPattern } from '~/server/utils/redis'
 import { callClaude, buildSummarizationPrompt } from '~/server/utils/claude'
 
 const MODEL = 'gpt-4o-mini'
@@ -50,6 +50,9 @@ export default defineEventHandler(async (event) => {
   )
 
   await doc.update({ status: 'indexed' })
+  await cacheDelPattern('public:docs:list:*')
+  await cacheDel(`public:doc:${documentId}`)
+  await cacheDel('public:stats')
 
   // Generate summary after re-indexing
   try {

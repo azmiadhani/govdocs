@@ -64,7 +64,7 @@
 <script setup lang="ts">
 import type { Document } from '~/types'
 
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
 const { fetchDocument, updateDocument } = useDocuments()

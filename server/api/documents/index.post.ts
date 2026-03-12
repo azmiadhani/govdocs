@@ -48,6 +48,8 @@ export default defineEventHandler(async (event) => {
   })
 
   await cacheDelPattern('docs:list:*')
+  await cacheDelPattern('public:docs:list:*')
+  await cacheDel('public:stats')
 
   return { document: doc }
 })
@@ -83,5 +85,7 @@ async function ingestDocument(docId: string, filePath: string) {
 
   await Document.update({ status: 'indexed' }, { where: { id: docId } })
   await cacheDelPattern('docs:list:*')
+  await cacheDelPattern('public:docs:list:*')
+  await cacheDel('public:stats')
   console.log(`[Ingest] Completed doc ${docId} — ${chunks.length} chunks`)
 }

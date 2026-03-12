@@ -13,7 +13,8 @@ dist/
 !.env.example
 
 # Uploads / local file storage
-uploads/
+uploads/*
+!uploads/.gitkeep
 
 # Logs
 logs/

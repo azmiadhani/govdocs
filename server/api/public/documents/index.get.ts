@@ -1,5 +1,6 @@
 import { Op } from 'sequelize'
 import { Document, AiSummary, SearchLog, getSequelize } from '~/server/models'
+import { cacheGet, cacheSet } from '~/server/utils/redis'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -10,6 +11,13 @@ export default defineEventHandler(async (event) => {
   const limit = Math.min(50, parseInt(query.limit as string) || 12)
   const sort = (query.sort as string) || 'newest'
   const offset = (page - 1) * limit
+
+  // Cache key (skip cache when q is present — search results must be fresh + logged)
+  const cacheKey = q ? null : `public:docs:list:${JSON.stringify({ type, ministry, page, limit, sort })}`
+  if (cacheKey) {
+    const cached = await cacheGet(cacheKey)
+    if (cached) return cached
+  }
 
   const where: any = { status: 'indexed' }
 
@@ -54,7 +62,7 @@ export default defineEventHandler(async (event) => {
     ),
   ])
 
-  return {
+  const result = {
     documents: rows,
     total: count,
     page,
@@ -62,4 +70,7 @@ export default defineEventHandler(async (event) => {
     availableTypes: availableTypes.map((r) => r.type),
     availableMinistries: availableMinistries.map((r) => r.ministry),
   }
+
+  if (cacheKey) await cacheSet(cacheKey, result, 900)
+  return result
 })

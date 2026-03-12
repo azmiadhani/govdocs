@@ -50,5 +50,5 @@ definePageMeta({ layout: 'public' })
 const { data, pending } = await useAsyncData('changelog', () => $fetch<any[]>('/api/public/changelog'))
 const entries = computed(() => data.value || [])
 
-useHead({ title: 'Changelog | GovDocs AI' })
+useHead({ title: 'Changelog' })
 </script>

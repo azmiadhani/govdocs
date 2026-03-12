@@ -148,5 +148,5 @@ const techs = [
   'OpenAI Embeddings', 'Sequelize', 'Nitro', 'Tailwind CSS', 'Nuxt UI',
 ]
 
-useHead({ title: 'Tentang Kami | GovDocs AI' })
+useHead({ title: 'Tentang Kami' })
 </script>

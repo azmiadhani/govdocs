@@ -1,6 +1,19 @@
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
+  app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
+    head: {
+      titleTemplate: '%s | GovDocs AI',
+      meta: [
+        { name: 'description', content: 'Platform cerdas untuk mengakses dan memahami dokumen kebijakan pemerintah Indonesia dengan kecerdasan buatan.' },
+        { name: 'robots', content: 'index, follow' },
+        { property: 'og:site_name', content: 'GovDocs AI' },
+        { property: 'og:type', content: 'website' },
+      ],
+    },
+  },
+
   components: [
     { path: '~/components', pathPrefix: false },
   ],

@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   await requireAuth(event)
   getSequelize()
 
+  try {
   const { documentId } = await readBody(event)
   if (!documentId) throw createError({ statusCode: 400, message: 'documentId is required' })
 
@@ -62,4 +63,9 @@ export default defineEventHandler(async (event) => {
   await cacheSet(cacheKey, aiSummary, 3600)
 
   return { summary: aiSummary, cached: false }
+  } catch (error: any) {
+    if (error.statusCode) throw error
+    console.error('[ai/summarize]', error)
+    throw createError({ statusCode: 500, message: 'Gagal membuat ringkasan. Silakan coba lagi.' })
+  }
 })

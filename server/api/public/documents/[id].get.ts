@@ -1,8 +1,16 @@
 import { Op } from 'sequelize'
 import { Document, AiSummary } from '~/server/models'
+import { cacheGet, cacheSet } from '~/server/utils/redis'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')!
+
+  // Increment view count before cache check — always runs on every request
+  Document.increment('viewCount', { where: { id } }).catch(() => {})
+
+  const cacheKey = `public:doc:${id}`
+  const cached = await cacheGet(cacheKey)
+  if (cached) return cached
 
   const doc = await Document.findByPk(id, {
     include: [{ model: AiSummary, as: 'summary', required: false }],
@@ -11,9 +19,6 @@ export default defineEventHandler(async (event) => {
   if (!doc) {
     throw createError({ statusCode: 404, message: 'Dokumen tidak ditemukan' })
   }
-
-  // Increment view count (fire-and-forget)
-  Document.increment('viewCount', { where: { id } }).catch(() => {})
 
   // Related documents: same type or ministry, exclude self
   const related = await Document.findAll({
@@ -32,10 +37,13 @@ export default defineEventHandler(async (event) => {
 
   const summary = (doc as any).summary as AiSummary | null
 
-  return {
+  const result = {
     document: doc,
     summary: summary?.summary ?? null,
     keyPoints: summary?.keyPoints ?? null,
     relatedDocuments: related,
   }
+
+  await cacheSet(cacheKey, result, 3600)
+  return result
 })

@@ -111,5 +111,5 @@ const faqSections = [
   },
 ]
 
-useHead({ title: 'FAQ | GovDocs AI' })
+useHead({ title: 'FAQ' })
 </script>

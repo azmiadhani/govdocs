@@ -1,4 +1,8 @@
 import { getSequelize } from '~/server/models'
+import { cacheGet, cacheSet } from '~/server/utils/redis'
+
+const CACHE_KEY = 'public:popular-searches'
+const CACHE_TTL = 3600
 
 const DEFAULTS = [
   'Peraturan Daerah',
@@ -10,6 +14,9 @@ const DEFAULTS = [
 ]
 
 export default defineEventHandler(async () => {
+  const cached = await cacheGet(CACHE_KEY)
+  if (cached) return cached
+
   const sequelize = getSequelize()
 
   const [searched, viewed] = await Promise.all([
@@ -65,5 +72,7 @@ export default defineEventHandler(async () => {
     }
   }
 
-  return results.slice(0, 6)
+  const result = results.slice(0, 6)
+  await cacheSet(CACHE_KEY, result, CACHE_TTL)
+  return result
 })

@@ -18,7 +18,10 @@ export default defineEventHandler(async (event) => {
   await doc.destroy()
 
   await cacheDelPattern('docs:list:*')
+  await cacheDelPattern('public:docs:list:*')
+  await cacheDel(`public:doc:${id}`)
   await cacheDel(`summary:${id}`)
+  await cacheDel('public:stats')
 
   return { ok: true }
 })

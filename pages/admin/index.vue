@@ -16,10 +16,26 @@
       />
     </UModal>
 
+    <!-- Unread feedback alert -->
+    <UAlert
+      v-if="unreadFeedback > 0"
+      icon="i-heroicons-chat-bubble-left-ellipsis"
+      color="orange"
+      variant="soft"
+      :title="`${unreadFeedback} pesan feedback belum dibaca`"
+      class="mb-6"
+    >
+      <template #description>
+        <NuxtLink to="/admin/feedback" class="underline font-medium">Lihat feedback</NuxtLink>
+      </template>
+    </UAlert>
+
     <!-- Stats row -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <UCard v-for="stat in stats" :key="stat.label">
-        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ stat.value }}</div>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <UCard v-for="stat in stats" :key="stat.label" :class="stat.highlight ? 'ring-1 ring-red-200 dark:ring-red-800' : ''">
+        <div class="text-2xl font-bold" :class="stat.highlight ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'">
+          {{ stat.value }}
+        </div>
         <div class="text-xs text-gray-400 mt-0.5">{{ stat.label }}</div>
       </UCard>
     </div>
@@ -51,6 +67,14 @@
             <UButton
               size="xs"
               variant="ghost"
+              icon="i-heroicons-eye"
+              :to="`/documents/${row.id}`"
+              target="_blank"
+              title="Lihat di situs"
+            />
+            <UButton
+              size="xs"
+              variant="ghost"
               icon="i-heroicons-pencil"
               :to="`/admin/documents/${row.id}`"
             />
@@ -71,12 +95,14 @@
 <script setup lang="ts">
 import type { Document } from '~/types'
 
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const { documents, total, loading, fetchDocuments, deleteDocument } = useDocuments()
 
 const showUpload = ref(false)
 const reindexing = ref<string | null>(null)
+const unreadFeedback = ref(0)
+const totalUsers = ref(0)
 
 const columns = [
   { key: 'title', label: 'Judul' },
@@ -87,10 +113,12 @@ const columns = [
 ]
 
 const stats = computed(() => [
-  { label: 'Total Dokumen', value: total.value },
-  { label: 'Terindeks', value: documents.value.filter((d) => d.status === 'indexed').length },
-  { label: 'Tertunda', value: documents.value.filter((d) => d.status === 'pending').length },
-  { label: 'Error', value: documents.value.filter((d) => d.status === 'error').length },
+  { label: 'Total Dokumen', value: total.value, highlight: false },
+  { label: 'Terindeks', value: documents.value.filter((d) => d.status === 'indexed').length, highlight: false },
+  { label: 'Tertunda', value: documents.value.filter((d) => d.status === 'pending').length, highlight: false },
+  { label: 'Error', value: documents.value.filter((d) => d.status === 'error').length, highlight: documents.value.filter((d) => d.status === 'error').length > 0 },
+  { label: 'Total Pengguna', value: totalUsers.value, highlight: false },
+  { label: 'Feedback Belum Dibaca', value: unreadFeedback.value, highlight: unreadFeedback.value > 0 },
 ])
 
 function statusColor(status: string) {
@@ -125,5 +153,17 @@ async function onUploaded() {
   }, 3000)
 }
 
-onMounted(() => fetchDocuments({ limit: 100 }))
+onMounted(async () => {
+  await fetchDocuments({ limit: 100 })
+  try {
+    const [feedbackData, usersData] = await Promise.all([
+      $fetch<{ unreadCount: number }>('/api/admin/feedback?limit=1'),
+      $fetch<any[]>('/api/admin/users'),
+    ])
+    unreadFeedback.value = feedbackData.unreadCount
+    totalUsers.value = usersData.length
+  } catch {
+    // non-critical — ignore errors for supplemental stats
+  }
+})
 </script>

@@ -186,5 +186,5 @@ function onReset() {
 
 onMounted(load)
 
-useHead({ title: 'Dokumen | GovDocs AI' })
+useHead({ title: computed(() => q.value ? `Hasil: "${q.value}"` : 'Dokumen') })
 </script>

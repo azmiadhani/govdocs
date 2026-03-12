@@ -136,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const TYPE_LABELS: Record<string, string> = {
   feature: 'Fitur Baru',

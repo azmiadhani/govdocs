@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   getSequelize()
 
+  try {
   const { query, sessionId, documentIds } = await readBody<ChatRequestBody>(event)
 
   if (!query?.trim()) throw createError({ statusCode: 400, message: 'Query is required' })
@@ -103,4 +104,9 @@ export default defineEventHandler(async (event) => {
   })().catch(console.error)
 
   return sendStream(event, streamForClient)
+  } catch (error: any) {
+    if (error.statusCode) throw error
+    console.error('[ai/chat]', error)
+    throw createError({ statusCode: 500, message: 'Terjadi kesalahan pada AI. Silakan coba lagi.' })
+  }
 })
