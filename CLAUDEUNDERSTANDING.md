@@ -1,7 +1,9 @@
 # CLAUDEUNDERSTANDING.md
+
 # GovDocs AI — Complete System Understanding
+
 > Produced on: 2026-03-12 | Author: Claude Code (claude-sonnet-4-6)
-> Last updated: 2026-03-12 — Smart Search (Semantic Search) feature implemented
+> Last updated: 2026-03-12 — Cache invalidation refactored: SCAN-based cacheDelPattern + invalidateDocumentCaches() utility across all document-mutating routes
 
 ---
 
@@ -10,11 +12,13 @@
 GovDocs AI is a **fullstack Nuxt 3 web application** for intelligent access, search, and analysis of Indonesian government documents. It is designed to feel like a hybrid of Humata, Perplexity document chat, and Glean — but oriented specifically toward Indonesian government workflows.
 
 The platform serves three main personas:
+
 - **Public visitors** — search and read government documents, use the landing page, contact form, FAQ
 - **Authenticated users (viewer/editor)** — use AI-powered RAG chat, view document summaries, upload documents (editor+)
 - **Administrators** — manage documents (upload, edit, re-index, delete), manage users (role changes), review feedback, manage changelogs
 
 The core value loops are:
+
 > Upload PDF → Auto-index (extract + chunk + embed) → User searches or chats → RAG retrieves relevant chunks → AI generates grounded response → Response streams in real-time
 
 > User types natural language query → Smart Search embeds query → Vector similarity search → Group + rank documents → AI synthesizes answer → Highlight snippets navigate to exact PDF page
@@ -24,37 +28,41 @@ The core value loops are:
 ## 2. Feature Map
 
 ### Public (unauthenticated)
-| Feature | Entry Point | API |
-|---|---|---|
-| Landing page with stats | `/` | `/api/public/stats`, `/api/public/documents/latest`, `/api/public/popular-searches` |
-| Document search + filter | `/documents` | `/api/public/documents` |
-| **Smart Search (semantic)** | `/documents` (modal) | **`POST /api/ai/smart-search`** |
-| Document detail + PDF preview | `/documents/:id` | `/api/public/documents/:id` |
-| About / FAQ / Contact | `/about`, `/faq`, `/contact` | `/api/public/contact` |
-| Public changelog | `/changelog` | `/api/public/changelog` |
-| Chat AI teaser | `/chat-ai` | (static or limited) |
+
+| Feature                       | Entry Point                  | API                                                                                 |
+| ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| Landing page with stats       | `/`                          | `/api/public/stats`, `/api/public/documents/latest`, `/api/public/popular-searches` |
+| Document search + filter      | `/documents`                 | `/api/public/documents`                                                             |
+| **Smart Search (semantic)**   | `/documents` (modal)         | **`POST /api/ai/smart-search`**                                                     |
+| Document detail + PDF preview | `/documents/:id`             | `/api/public/documents/:id`                                                         |
+| About / FAQ / Contact         | `/about`, `/faq`, `/contact` | `/api/public/contact`                                                               |
+| Public changelog              | `/changelog`                 | `/api/public/changelog`                                                             |
+| Chat AI teaser                | `/chat-ai`                   | (static or limited)                                                                 |
 
 ### Authenticated (viewer+)
-| Feature | Entry Point | API |
-|---|---|---|
-| Multi-session RAG chat | `/chat` | `/api/chat/sessions`, `/api/ai/chat` |
-| Document-scoped chat | `/chat/:documentId` | `/api/ai/chat` with documentIds |
-| AI document summary | `/documents/:id` | `/api/ai/summarize` |
+
+| Feature                | Entry Point         | API                                  |
+| ---------------------- | ------------------- | ------------------------------------ |
+| Multi-session RAG chat | `/chat`             | `/api/chat/sessions`, `/api/ai/chat` |
+| Document-scoped chat   | `/chat/:documentId` | `/api/ai/chat` with documentIds      |
+| AI document summary    | `/documents/:id`    | `/api/ai/summarize`                  |
 
 ### Editor+
-| Feature | Entry Point | API |
-|---|---|---|
-| Upload document | `/admin` (modal) | `POST /api/documents` |
-| Edit document metadata | `/admin` | `PUT /api/documents/:id` |
+
+| Feature                | Entry Point      | API                      |
+| ---------------------- | ---------------- | ------------------------ |
+| Upload document        | `/admin` (modal) | `POST /api/documents`    |
+| Edit document metadata | `/admin`         | `PUT /api/documents/:id` |
 
 ### Admin only
-| Feature | Entry Point | API |
-|---|---|---|
-| Admin document dashboard | `/admin` | `/api/documents`, `/api/admin/reindex` |
-| User management | `/admin/users` | `/api/admin/users`, `/api/admin/users/:id/role` |
-| Feedback inbox | `/admin/feedback` | `/api/admin/feedback`, `/api/admin/feedback/:id` |
-| Changelog management | `/admin/changelog` | `/api/admin/changelog/*` |
-| Delete document | `/admin` or `/documents/:id` | `DELETE /api/documents/:id` |
+
+| Feature                  | Entry Point                  | API                                              |
+| ------------------------ | ---------------------------- | ------------------------------------------------ |
+| Admin document dashboard | `/admin`                     | `/api/documents`, `/api/admin/reindex`           |
+| User management          | `/admin/users`               | `/api/admin/users`, `/api/admin/users/:id/role`  |
+| Feedback inbox           | `/admin/feedback`            | `/api/admin/feedback`, `/api/admin/feedback/:id` |
+| Changelog management     | `/admin/changelog`           | `/api/admin/changelog/*`                         |
+| Delete document          | `/admin` or `/documents/:id` | `DELETE /api/documents/:id`                      |
 
 ---
 
@@ -130,31 +138,35 @@ changelogs       (standalone, no FK)
 ```
 
 ### Key Relationships
-| Relationship | Cardinality | On Delete |
-|---|---|---|
-| User → Documents | 1:Many | SET NULL (uploader) |
-| Document → DocumentChunks | 1:Many | CASCADE |
-| Document → AiSummary | 1:1 | CASCADE |
-| User → ChatSessions | 1:Many | CASCADE |
-| ChatSession → Document | Many:1 | SET NULL (optional scope) |
-| ChatSession → ChatMessages | 1:Many | CASCADE |
+
+| Relationship               | Cardinality | On Delete                 |
+| -------------------------- | ----------- | ------------------------- |
+| User → Documents           | 1:Many      | SET NULL (uploader)       |
+| Document → DocumentChunks  | 1:Many      | CASCADE                   |
+| Document → AiSummary       | 1:1         | CASCADE                   |
+| User → ChatSessions        | 1:Many      | CASCADE                   |
+| ChatSession → Document     | Many:1      | SET NULL (optional scope) |
+| ChatSession → ChatMessages | 1:Many      | CASCADE                   |
 
 ### UUID Primary Keys
+
 All tables use UUID v4 primary keys (UUID default via `UUIDV4`). This avoids sequential ID enumeration attacks and is appropriate for distributed inserts.
 
 ### Indexing Strategy
-| Table | Index | Type | Reason |
-|---|---|---|---|
-| users | email | UNIQUE | Login lookup |
-| documents | status, type, ministry, uploaded_by | B-Tree | Filter queries |
-| document_chunks | document_id | B-Tree | Per-document chunk lookups |
-| document_chunks | embedding | HNSW (cosine) | Fast ANN vector search |
-| chat_sessions | user_id | B-Tree | User session list |
-| chat_messages | session_id | B-Tree | Message history load |
-| feedback | status, created_at | B-Tree | Admin filter/sort |
-| changelogs | published, released_at | B-Tree | Public changelog filter |
+
+| Table           | Index                               | Type          | Reason                     |
+| --------------- | ----------------------------------- | ------------- | -------------------------- |
+| users           | email                               | UNIQUE        | Login lookup               |
+| documents       | status, type, ministry, uploaded_by | B-Tree        | Filter queries             |
+| document_chunks | document_id                         | B-Tree        | Per-document chunk lookups |
+| document_chunks | embedding                           | HNSW (cosine) | Fast ANN vector search     |
+| chat_sessions   | user_id                             | B-Tree        | User session list          |
+| chat_messages   | session_id                          | B-Tree        | Message history load       |
+| feedback        | status, created_at                  | B-Tree        | Admin filter/sort          |
+| changelogs      | published, released_at              | B-Tree        | Public changelog filter    |
 
 ### Vector Search Specifics
+
 - pgvector extension enabled via migration: `CREATE EXTENSION IF NOT EXISTS vector`
 - Column type: `vector(1536)` (not a standard Sequelize type — defined as `'vector(1536)' as any`)
 - HNSW index for approximate nearest-neighbor search with cosine similarity
@@ -162,6 +174,7 @@ All tables use UUID v4 primary keys (UUID default via `UUIDV4`). This avoids seq
 - Search via raw `sequelize.query()` since Sequelize ORM has no native pgvector support
 
 ### Migration Strategy
+
 - 10 migrations total (001–010), all `.cjs` extension (required: `package.json` has `"type": "module"`)
 - Sequential, additive migrations (no destructive drops)
 - `.sequelizerc` routes CLI to correct paths
@@ -256,7 +269,7 @@ POST /api/ai/chat
 
 ### C. Summarization
 
-```
+````
 POST /api/ai/summarize
   Body: {documentId}
   │
@@ -273,11 +286,12 @@ POST /api/ai/summarize
         ├── 6. JSON.parse response
         ├── 7. AiSummary.create({documentId, summary, keyPoints, modelUsed})
         └── 8. cacheSet(`summary:{id}`, result, 3600)
-```
+````
 
 **IMPORTANT NOTE:** Despite the file being named `claude.ts` and the function `streamClaude()`, the actual model used is **OpenAI gpt-4o-mini**, not Anthropic Claude. The CLAUDE.md spec says `claude-sonnet-4-5` should be used. This is a discrepancy — the Anthropic SDK (`@anthropic-ai/sdk`) is installed but appears unused in the current implementation.
 
 ### D. Smart Search / Semantic Search — Hybrid Retrieval (non-streaming, public)
+
 > Last updated: upgraded from pure vector to hybrid retrieval + sentence-level snippets + confidence metric.
 
 ```
@@ -375,6 +389,7 @@ POST /api/ai/smart-search
 | Keyword content match only | BOOST_CONTENT | 0.15 |
 
 **Snippet improvement:**
+
 - Old: character slice of first 200 chars — biased toward document boilerplate at chunk start
 - New: TF-style sentence scoring picks the sentence most densely matching query terms, then expands ±1 sentence for readability. Stopwords excluded from scoring. Fallback to char-based when no query terms found.
 
@@ -386,6 +401,7 @@ POST /api/ai/smart-search
 | < 0.45 | Rendah (Low) | Orange |
 
 **Navigation from Smart Search results:**
+
 - Clicking a result navigates to `/documents/:id?page=N`
 - `pages/documents/[id].vue` reads `route.query.page`, appends `#page=N` to the PDF iframe URL
 - Standard PDF open parameter — supported natively by Chrome and Firefox built-in PDF viewer
@@ -444,86 +460,92 @@ Server-side Route Protection
 ```
 
 ### Role Hierarchy
-| Role | Rank | Permissions |
-|---|---|---|
-| viewer | 0 | Read documents, use chat |
-| editor | 1 | viewer + upload/edit documents |
-| admin | 2 | editor + delete docs, manage users, manage feedback/changelog, re-index |
+
+| Role   | Rank | Permissions                                                             |
+| ------ | ---- | ----------------------------------------------------------------------- |
+| viewer | 0    | Read documents, use chat                                                |
+| editor | 1    | viewer + upload/edit documents                                          |
+| admin  | 2    | editor + delete docs, manage users, manage feedback/changelog, re-index |
 
 ---
 
 ## 7. Frontend Composition
 
 ### Layouts
-| Layout | Used By | Components |
-|---|---|---|
-| `public` | `/`, `/documents/*`, `/about`, `/faq`, `/contact`, `/changelog`, `/chat-ai` | PublicNavTop + PublicNavBottom + Footer |
-| `default` | Authenticated document pages | AppSidebar + scrollable main |
-| `admin` | `/admin/*` | AppSidebar + scrollable main (identical to default) |
-| `chat` | `/chat`, `/chat/:documentId` | AppSidebar + full-height flex (chat scrolls internally) |
-| `false` | `/login` | No layout wrapper |
+
+| Layout    | Used By                                                                     | Components                                              |
+| --------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `public`  | `/`, `/documents/*`, `/about`, `/faq`, `/contact`, `/changelog`, `/chat-ai` | PublicNavTop + PublicNavBottom + Footer                 |
+| `default` | Authenticated document pages                                                | AppSidebar + scrollable main                            |
+| `admin`   | `/admin/*`                                                                  | AppSidebar + scrollable main (identical to default)     |
+| `chat`    | `/chat`, `/chat/:documentId`                                                | AppSidebar + full-height flex (chat scrolls internally) |
+| `false`   | `/login`                                                                    | No layout wrapper                                       |
 
 ### Pages
-| Page | Layout | Auth Required | Description |
-|---|---|---|---|
-| `/` | public | No | Landing: hero, stats, categories, latest docs |
-| `/documents` | public | No | Search/filter all indexed documents |
-| `/documents/:id` | public | No (admin actions need auth) | Document detail, PDF preview, AI summary |
-| `/chat` | chat | Yes (viewer+) | Multi-session RAG chat |
-| `/chat/:documentId` | chat | Yes (viewer+) | Document-scoped chat |
-| `/login` | none | Redirect if logged in | Login form |
-| `/admin` | admin | Yes (admin) | Document management dashboard |
-| `/admin/users` | admin | Yes (admin) | User list + role management |
-| `/admin/feedback` | admin | Yes (admin) | Feedback inbox |
-| `/admin/changelog` | admin | Yes (admin) | Changelog CRUD |
-| `/about` | public | No | Static (prerendered) |
-| `/faq` | public | No | Static (prerendered) |
-| `/contact` | public | No | Contact form |
-| `/changelog` | public | No | Public changelog |
-| `/chat-ai` | public | No | Unauthenticated chat teaser |
-| `/error` | — | No | Error boundary |
+
+| Page                | Layout | Auth Required                | Description                                   |
+| ------------------- | ------ | ---------------------------- | --------------------------------------------- |
+| `/`                 | public | No                           | Landing: hero, stats, categories, latest docs |
+| `/documents`        | public | No                           | Search/filter all indexed documents           |
+| `/documents/:id`    | public | No (admin actions need auth) | Document detail, PDF preview, AI summary      |
+| `/chat`             | chat   | Yes (viewer+)                | Multi-session RAG chat                        |
+| `/chat/:documentId` | chat   | Yes (viewer+)                | Document-scoped chat                          |
+| `/login`            | none   | Redirect if logged in        | Login form                                    |
+| `/admin`            | admin  | Yes (admin)                  | Document management dashboard                 |
+| `/admin/users`      | admin  | Yes (admin)                  | User list + role management                   |
+| `/admin/feedback`   | admin  | Yes (admin)                  | Feedback inbox                                |
+| `/admin/changelog`  | admin  | Yes (admin)                  | Changelog CRUD                                |
+| `/about`            | public | No                           | Static (prerendered)                          |
+| `/faq`              | public | No                           | Static (prerendered)                          |
+| `/contact`          | public | No                           | Contact form                                  |
+| `/changelog`        | public | No                           | Public changelog                              |
+| `/chat-ai`          | public | No                           | Unauthenticated chat teaser                   |
+| `/error`            | —      | No                           | Error boundary                                |
 
 ### Key Components
-| Component | Location | Purpose |
-|---|---|---|
-| `AppSidebar` | `components/AppSidebar.vue` | Main nav with logo, links, user info, logout |
-| `PublicNavTop` | `components/ui/PublicNavTop.vue` | Top bar for public pages |
-| `PublicNavBottom` | `components/ui/PublicNavBottom.vue` | Category nav for public pages |
-| `DocumentCard` | `components/documents/DocumentCard.vue` | Grid card |
-| `DocumentListItem` | `components/documents/DocumentListItem.vue` | List row |
-| `DocumentUpload` | `components/documents/DocumentUpload.vue` | Upload form modal |
-| `FilterPanel` | `components/documents/FilterPanel.vue` | Search/sort/type/ministry filters |
-| `PdfPreview` | `components/documents/PdfPreview.vue` | PDF viewer |
-| `DocumentSummary` | `components/documents/DocumentSummary.vue` | AI summary display |
-| `DocumentKeyPoints` | `components/documents/DocumentKeyPoints.vue` | Key points list |
-| `ChatWindow` | `components/chat/ChatWindow.vue` | Full chat interface |
-| `ChatInput` | `components/chat/ChatInput.vue` | Message input |
-| `ChatMessage` | `components/chat/ChatMessage.vue` | Single message with sources |
-| `ChatHistory` | `components/chat/ChatHistory.vue` | Scrollable message list |
-| `DocumentScopeSelector` | `components/chat/DocumentScopeSelector.vue` | Filter chat to specific docs |
-| `CategoryCard` | `components/documents/CategoryCard.vue` | Document type card on landing |
-| `SearchChip` | `components/ui/SearchChip.vue` | Popular search chip |
-| `StatCard` | `components/ui/StatCard.vue` | Stats display on landing |
-| `ChangelogEntry` | `components/ui/ChangelogEntry.vue` | Changelog row renderer |
-| `FaqAccordion` | `components/ui/FaqAccordion.vue` | FAQ accordion item |
-| `ContactForm` | `components/ui/ContactForm.vue` | Contact form |
-| `StreamingText` | `components/ui/StreamingText.vue` | Animated streaming text display |
-| `LoadingDots` | `components/ui/LoadingDots.vue` | Loading indicator |
-| `MarkdownRenderer` | `components/ui/MarkdownRenderer.vue` | @nuxtjs/mdc markdown render |
-| **`SmartSearchResult`** | **`components/SmartSearchResult.vue`** | **AI answer + document grid with highlight snippets** |
+
+| Component               | Location                                     | Purpose                                               |
+| ----------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| `AppSidebar`            | `components/AppSidebar.vue`                  | Main nav with logo, links, user info, logout          |
+| `PublicNavTop`          | `components/ui/PublicNavTop.vue`             | Top bar for public pages                              |
+| `PublicNavBottom`       | `components/ui/PublicNavBottom.vue`          | Category nav for public pages                         |
+| `DocumentCard`          | `components/documents/DocumentCard.vue`      | Grid card                                             |
+| `DocumentListItem`      | `components/documents/DocumentListItem.vue`  | List row                                              |
+| `DocumentUpload`        | `components/documents/DocumentUpload.vue`    | Upload form modal                                     |
+| `FilterPanel`           | `components/documents/FilterPanel.vue`       | Search/sort/type/ministry filters                     |
+| `PdfPreview`            | `components/documents/PdfPreview.vue`        | PDF viewer                                            |
+| `DocumentSummary`       | `components/documents/DocumentSummary.vue`   | AI summary display                                    |
+| `DocumentKeyPoints`     | `components/documents/DocumentKeyPoints.vue` | Key points list                                       |
+| `ChatWindow`            | `components/chat/ChatWindow.vue`             | Full chat interface                                   |
+| `ChatInput`             | `components/chat/ChatInput.vue`              | Message input                                         |
+| `ChatMessage`           | `components/chat/ChatMessage.vue`            | Single message with sources                           |
+| `ChatHistory`           | `components/chat/ChatHistory.vue`            | Scrollable message list                               |
+| `DocumentScopeSelector` | `components/chat/DocumentScopeSelector.vue`  | Filter chat to specific docs                          |
+| `CategoryCard`          | `components/documents/CategoryCard.vue`      | Document type card on landing                         |
+| `SearchChip`            | `components/ui/SearchChip.vue`               | Popular search chip                                   |
+| `StatCard`              | `components/ui/StatCard.vue`                 | Stats display on landing                              |
+| `ChangelogEntry`        | `components/ui/ChangelogEntry.vue`           | Changelog row renderer                                |
+| `FaqAccordion`          | `components/ui/FaqAccordion.vue`             | FAQ accordion item                                    |
+| `ContactForm`           | `components/ui/ContactForm.vue`              | Contact form                                          |
+| `StreamingText`         | `components/ui/StreamingText.vue`            | Animated streaming text display                       |
+| `LoadingDots`           | `components/ui/LoadingDots.vue`              | Loading indicator                                     |
+| `MarkdownRenderer`      | `components/ui/MarkdownRenderer.vue`         | @nuxtjs/mdc markdown render                           |
+| **`SmartSearchResult`** | **`components/SmartSearchResult.vue`**       | **AI answer + document grid with highlight snippets** |
 
 ### Composables
-| Composable | State Management | Key Methods |
-|---|---|---|
-| `useAuth` | `useState('auth.user')` | fetchUser, login, logout, isAdmin, isEditor, isLoggedIn |
-| `useDocuments` | `ref` (local) | fetchDocuments, fetchDocument, updateDocument, deleteDocument, uploadDocument |
-| `useChat` | `useState` (SSR-safe) | createSession, loadHistory, fetchSessions, sendMessage (streaming) |
-| `useAISummary` | `ref` (local) | fetchSummary |
-| **`useSmartSearch`** | **`ref` (local)** | **search(query), clear() — loading, result, error, lastQuery** |
+
+| Composable           | State Management        | Key Methods                                                                   |
+| -------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| `useAuth`            | `useState('auth.user')` | fetchUser, login, logout, isAdmin, isEditor, isLoggedIn                       |
+| `useDocuments`       | `ref` (local)           | fetchDocuments, fetchDocument, updateDocument, deleteDocument, uploadDocument |
+| `useChat`            | `useState` (SSR-safe)   | createSession, loadHistory, fetchSessions, sendMessage (streaming)            |
+| `useAISummary`       | `ref` (local)           | fetchSummary                                                                  |
+| **`useSmartSearch`** | **`ref` (local)**       | **search(query), clear() — loading, result, error, lastQuery**                |
 
 ### Plugins
-| Plugin | Runs On | Purpose |
-|---|---|---|
+
+| Plugin            | Runs On         | Purpose                                                             |
+| ----------------- | --------------- | ------------------------------------------------------------------- |
 | `plugins/auth.ts` | Server + Client | Initialize auth state on app boot; calls fetchUser() if state empty |
 
 ---
@@ -531,40 +553,41 @@ Server-side Route Protection
 ## 8. Backend Route Responsibilities
 
 ### Route Summary Table
-| Method | Path | Auth | Cache | Description |
-|---|---|---|---|---|
-| POST | /api/auth/login | No | No | Authenticate, set cookie |
-| POST | /api/auth/logout | No | No | Clear cookie |
-| GET | /api/auth/me | Yes | No | Validate token, return user |
-| GET | /api/documents | Yes | 5 min | List with filters (admin view) |
-| POST | /api/documents | Editor+ | Invalidates | Upload + async index |
-| GET | /api/documents/:id | Yes | No | Detail with uploader + summary |
-| PUT | /api/documents/:id | Editor+ | Invalidates | Update metadata |
-| DELETE | /api/documents/:id | Admin | Invalidates | Delete file + DB cascade |
-| POST | /api/ai/chat | Yes | No | RAG chat stream (SSE) |
-| POST | /api/ai/summarize | Yes | 1 hr | Generate or return cached summary |
-| **POST** | **/api/ai/smart-search** | **No** | **5 min (sha256 key)** | **Semantic search: embed → vector search → group → AI answer + highlights** |
-| GET | /api/chat/sessions | Yes | No | List user sessions |
-| POST | /api/chat/sessions | Yes | No | Create session |
-| PATCH | /api/chat/sessions/:id | Yes | No | Update title |
-| GET | /api/chat/sessions/:id/messages | Yes | No | Load history |
-| GET | /api/admin/users | Admin | No | List all users |
-| PATCH | /api/admin/users/:id/role | Admin | No | Change role |
-| GET | /api/admin/feedback | Admin | No | Paginated feedback |
-| PATCH | /api/admin/feedback/:id | Admin | No | Update status |
-| POST | /api/admin/reindex | Admin | Invalidates | Force re-index document |
-| GET | /api/admin/changelog | Admin | No | All changelogs (including drafts) |
-| POST | /api/admin/changelog | Admin | Invalidates | Create entry |
-| PATCH | /api/admin/changelog/:id | Admin | Invalidates | Update entry |
-| DELETE | /api/admin/changelog/:id | Admin | Invalidates | Delete entry |
-| GET | /api/public/stats | No | 30 min | Platform stats |
-| GET | /api/public/documents | No | 5 min (no-q) | Public document list |
-| GET | /api/public/documents/latest | No | No | 6 newest docs |
-| GET | /api/public/documents/:id | No | 1 hr | Document detail + related |
-| GET | /api/public/changelog | No | 1 hr | Published changelogs |
-| POST | /api/public/contact | No | No | Submit feedback form |
-| GET | /api/public/popular-searches | No | 1 hr | Search chips for landing |
-| GET | /api/public/files/:filename | No | CDN headers | Serve PDF file |
+
+| Method   | Path                            | Auth    | Cache                  | Description                                                                 |
+| -------- | ------------------------------- | ------- | ---------------------- | --------------------------------------------------------------------------- |
+| POST     | /api/auth/login                 | No      | No                     | Authenticate, set cookie                                                    |
+| POST     | /api/auth/logout                | No      | No                     | Clear cookie                                                                |
+| GET      | /api/auth/me                    | Yes     | No                     | Validate token, return user                                                 |
+| GET      | /api/documents                  | Yes     | 5 min                  | List with filters (admin view)                                              |
+| POST     | /api/documents                  | Editor+ | Invalidates            | Upload + async index                                                        |
+| GET      | /api/documents/:id              | Yes     | No                     | Detail with uploader + summary                                              |
+| PUT      | /api/documents/:id              | Editor+ | Invalidates            | Update metadata                                                             |
+| DELETE   | /api/documents/:id              | Admin   | Invalidates            | Delete file + DB cascade                                                    |
+| POST     | /api/ai/chat                    | Yes     | No                     | RAG chat stream (SSE)                                                       |
+| POST     | /api/ai/summarize               | Yes     | 1 hr                   | Generate or return cached summary                                           |
+| **POST** | **/api/ai/smart-search**        | **No**  | **5 min (sha256 key)** | **Semantic search: embed → vector search → group → AI answer + highlights** |
+| GET      | /api/chat/sessions              | Yes     | No                     | List user sessions                                                          |
+| POST     | /api/chat/sessions              | Yes     | No                     | Create session                                                              |
+| PATCH    | /api/chat/sessions/:id          | Yes     | No                     | Update title                                                                |
+| GET      | /api/chat/sessions/:id/messages | Yes     | No                     | Load history                                                                |
+| GET      | /api/admin/users                | Admin   | No                     | List all users                                                              |
+| PATCH    | /api/admin/users/:id/role       | Admin   | No                     | Change role                                                                 |
+| GET      | /api/admin/feedback             | Admin   | No                     | Paginated feedback                                                          |
+| PATCH    | /api/admin/feedback/:id         | Admin   | No                     | Update status                                                               |
+| POST     | /api/admin/reindex              | Admin   | Invalidates            | Force re-index document                                                     |
+| GET      | /api/admin/changelog            | Admin   | No                     | All changelogs (including drafts)                                           |
+| POST     | /api/admin/changelog            | Admin   | Invalidates            | Create entry                                                                |
+| PATCH    | /api/admin/changelog/:id        | Admin   | Invalidates            | Update entry                                                                |
+| DELETE   | /api/admin/changelog/:id        | Admin   | Invalidates            | Delete entry                                                                |
+| GET      | /api/public/stats               | No      | 30 min                 | Platform stats                                                              |
+| GET      | /api/public/documents           | No      | 5 min (no-q)           | Public document list                                                        |
+| GET      | /api/public/documents/latest    | No      | No                     | 6 newest docs                                                               |
+| GET      | /api/public/documents/:id       | No      | 1 hr                   | Document detail + related                                                   |
+| GET      | /api/public/changelog           | No      | 1 hr                   | Published changelogs                                                        |
+| POST     | /api/public/contact             | No      | No                     | Submit feedback form                                                        |
+| GET      | /api/public/popular-searches    | No      | 1 hr                   | Search chips for landing                                                    |
+| GET      | /api/public/files/:filename     | No      | CDN headers            | Serve PDF file                                                              |
 
 ---
 
@@ -572,31 +595,50 @@ Server-side Route Protection
 
 ### Caching Strategy (Redis)
 
-| Cache Key Pattern | TTL | Invalidated By |
-|---|---|---|
-| `docs:list:*` (hashed params) | 5 min | Upload, update, delete, reindex |
-| `public:docs:list:*` | 5 min | Same as above |
-| `public:docs:detail:${id}` | 1 hr | Update, delete |
-| `public:stats` | 30 min | Upload, delete, reindex |
-| `summary:${id}` | 1 hr | Delete, reindex |
-| `public:changelog` | 1 hr | Changelog create/update/delete |
-| `public:popular-searches` | 1 hr | Time-based only |
-| **`smart-search:{sha256(query)}`** | **5 min** | **Time-based only (no invalidation needed — query content is immutable)** |
+| Cache Key Pattern                  | TTL       | Invalidated By                                                        |
+| ---------------------------------- | --------- | --------------------------------------------------------------------- |
+| `docs:list:*` (hashed params)      | 5 min     | Upload, update, delete, reindex                                       |
+| `public:docs:list:*`               | 5 min     | Same as above                                                         |
+| `public:doc:${id}`                 | 1 hr      | Update, delete, reindex                                               |
+| `public:stats`                     | 30 min    | Upload, delete, reindex (NOT metadata-only update)                    |
+| `summary:${id}`                    | 1 hr      | Delete, reindex                                                       |
+| `public:changelog`                 | 1 hr      | Changelog create/update/delete                                        |
+| `public:popular-searches`          | 1 hr      | Time-based only                                                       |
+| **`smart-search:{sha256(query)}`** | **5 min** | **Document update, delete, reindex (via `invalidateDocumentCaches`)** |
 
-**Concern:** `cacheDelPattern()` uses Redis `KEYS` command which is O(N) on keyspace. On large Redis instances this can block. Should use Redis `SCAN` instead.
+**Cache Invalidation Utility — `invalidateDocumentCaches(docId?, invalidateStats?)`**
+All document-mutating routes use a single shared utility in `server/utils/redis.ts` instead of scattered `cacheDelPattern`/`cacheDel` calls:
 
-**Smart Search cache design note:** Smart search uses `sha256(normalizedQuery)` as the key suffix — deterministic, collision-resistant, fixed-length regardless of query complexity. Because the cache key is derived solely from the query content (not document state), no invalidation logic is required. Stale results expire naturally after 5 minutes.
+```ts
+invalidateDocumentCaches(docId?, invalidateStats = true)
+// Always clears: docs:list:* + public:docs:list:*
+// When docId given: also clears public:doc:{id} + summary:{id}
+// When invalidateStats=false: skips public:stats (metadata-only edits don't change counts)
+```
+
+| Route                                    | Call                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `POST /api/documents` (upload)           | `invalidateDocumentCaches()` — no docId yet, clears lists + stats + smart-search |
+| `PUT /api/documents/:id` (metadata edit) | `invalidateDocumentCaches(id, false)` — clears lists + smart-search, skips stats |
+| `DELETE /api/documents/:id`              | `invalidateDocumentCaches(id, true)` — clears all                                |
+| `POST /api/admin/reindex`                | `invalidateDocumentCaches(id, true)` — clears all                                |
+
+**`cacheDelPattern` now uses Redis `SCAN` (non-blocking)**
+Replaced the previous `KEYS`-based implementation with an iterative `SCAN` loop (`COUNT 100` per batch). This is O(N) like `KEYS` in total but non-blocking — the Redis event loop is not held during the scan, making it safe for production keyspaces.
 
 ### Connection Pooling
+
 - Sequelize pool: `max: 10, min: 0, idle: 10000ms`
 - Adequate for moderate traffic; not tuned for high concurrency
 
 ### Async Background Processing
+
 - Document ingestion is fire-and-forget (no job queue)
 - If Nitro worker dies mid-ingestion, document remains `status='pending'` forever
 - No retry mechanism, no dead-letter queue
 
 ### Embedding Batching
+
 - 100 chunks per OpenAI API batch call
 - Sequential batches (not parallel) — suitable for medium-sized PDFs
 - Large PDFs with 1000+ chunks could take significant time
@@ -606,6 +648,7 @@ Server-side Route Protection
 ## 10. Identified Technical Debt
 
 ### Resolved by Smart Search implementation
+
 - ~~**Item 8**: No max-length enforcement on query input~~ — Smart search enforces `MAX_QUERY_LENGTH = 500` chars server-side.
 - **Cache key safety**: Smart search uses deterministic `GET`/`SET` only — never `cacheDelPattern()`.
 - ~~**Snippet quality**: Character-based snippet biased toward boilerplate~~ — Replaced with sentence-level TF-style scoring that surfaces the most query-relevant sentence in each chunk.
@@ -618,7 +661,7 @@ Server-side Route Protection
 
 2. **No Background Job Queue**: Document ingestion runs as a fire-and-forget `setImmediate`/async block inside the request handler. If the Nitro process restarts, in-flight indexing is lost permanently. No retry, no observability, no queue.
 
-3. **`KEYS` pattern in Redis**: `cacheDelPattern()` uses `KEYS *` which is blocking O(N). Acceptable in dev with small keyspaces; dangerous in production.
+3. **~~`KEYS` pattern in Redis~~** ✅ **Resolved**: `cacheDelPattern()` now uses iterative `SCAN` (non-blocking, `COUNT 100` per batch). All document-mutating routes use the shared `invalidateDocumentCaches()` utility — no more scattered `cacheDelPattern`/`cacheDel` calls across routes.
 
 4. **Admin delete bypasses ownership check**: `DELETE /api/documents/:id` requires admin role but does not verify the document exists before attempting file deletion (will throw if record not found — this is acceptable, but the error path should be cleaner).
 
@@ -646,7 +689,7 @@ Server-side Route Protection
 
 14. **No soft deletes**: Documents deleted are permanently removed (CASCADE). No trash/recovery mechanism.
 
-15. **Smart search cache staleness after re-index**: If a document is re-indexed, existing `smart-search:*` entries may return stale AI answers (including stale hybrid keyword hits) until the 5-minute TTL expires. Acceptable at current scale; at higher re-index frequency a targeted invalidation by document ID prefix would be needed.
+15. **~~Smart search cache staleness after re-index~~** ✅ **Resolved**: `smart-search:*` is now included in `invalidateDocumentCaches()`, so all smart search results are cleared immediately on any document update, delete, or reindex.
 
 16. **Smart search result XSS safety**: `SmartSearchResult.vue` uses `v-html` for highlight rendering. Mitigated by: (a) escaping all HTML in snippet text before injection, (b) only injecting controlled `<mark>` tags via regex replacement on the already-escaped string. Regex targets query word matches only.
 
@@ -655,16 +698,19 @@ Server-side Route Protection
 ## 11. Scaling Risks
 
 ### Short-term (1k documents)
+
 - Current architecture is sufficient
 - Redis cache covers most hot read paths
 - HNSW index handles vector search efficiently at this scale
 
 ### Medium-term (10k documents)
+
 - **Risk: Embedding latency spike** — Large PDFs with many chunks will take minutes to index. Fire-and-forget is unreliable; users may check status and see `pending` indefinitely.
 - **Risk: PostgreSQL vector search latency** — HNSW is approximate; at 10M+ vectors, memory usage and index build time become significant.
 - **Risk: Redis keyspace size** — Pattern-based invalidation with `KEYS` will noticeably slow as keyspace grows.
 
 ### Long-term (100k+ documents)
+
 - **Risk: Sequelize pool exhaustion** — Max 10 connections may bottleneck under concurrent uploads + chat sessions.
 - **Risk: S3 file serving through Nitro** — `/api/public/files/:filename` serves files via Node.js stream. At scale, this should use CDN-signed URLs instead.
 - **Risk: Chat history unbounded growth** — No archiving or pruning strategy for `chat_messages`.
@@ -674,20 +720,20 @@ Server-side Route Protection
 
 ## 12. Missing Production Concerns
 
-| Concern | Status | Notes |
-|---|---|---|
-| Rate limiting | Missing | No rate limiting on `/api/public/contact`, chat, or login endpoints |
-| Request size limit | Unclear | Nuxt default may reject large PDFs; needs explicit `maxBodySize` config |
-| CORS policy | Default Nuxt | No explicit CORS headers configured for public API |
-| Error monitoring | Missing | No Sentry, Datadog, or equivalent integration |
-| Structured logging | Missing | Only `console.log` / `console.error` — not queryable in production |
-| Health check endpoint | Missing | No `/api/health` or `/api/ping` for load balancer probes |
-| Database migrations in CI/CD | Unclear | No deployment script ensures migrations run before app start |
-| SSL/TLS termination | Not in app | Assumed to be handled by reverse proxy (nginx/ALB) |
-| Secret rotation | No mechanism | JWT_SECRET rotation would invalidate all sessions immediately |
-| Backup strategy | Not defined | No database backup schedule mentioned |
-| PDF malware scanning | Missing | Uploaded PDFs are not scanned before text extraction |
-| Content moderation | Missing | No filtering on AI-generated outputs or user-submitted contact form |
+| Concern                      | Status       | Notes                                                                   |
+| ---------------------------- | ------------ | ----------------------------------------------------------------------- |
+| Rate limiting                | Missing      | No rate limiting on `/api/public/contact`, chat, or login endpoints     |
+| Request size limit           | Unclear      | Nuxt default may reject large PDFs; needs explicit `maxBodySize` config |
+| CORS policy                  | Default Nuxt | No explicit CORS headers configured for public API                      |
+| Error monitoring             | Missing      | No Sentry, Datadog, or equivalent integration                           |
+| Structured logging           | Missing      | Only `console.log` / `console.error` — not queryable in production      |
+| Health check endpoint        | Missing      | No `/api/health` or `/api/ping` for load balancer probes                |
+| Database migrations in CI/CD | Unclear      | No deployment script ensures migrations run before app start            |
+| SSL/TLS termination          | Not in app   | Assumed to be handled by reverse proxy (nginx/ALB)                      |
+| Secret rotation              | No mechanism | JWT_SECRET rotation would invalidate all sessions immediately           |
+| Backup strategy              | Not defined  | No database backup schedule mentioned                                   |
+| PDF malware scanning         | Missing      | Uploaded PDFs are not scanned before text extraction                    |
+| Content moderation           | Missing      | No filtering on AI-generated outputs or user-submitted contact form     |
 
 ---
 
