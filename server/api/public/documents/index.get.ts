@@ -26,10 +26,14 @@ export default defineEventHandler(async (event) => {
   const where: any = { status: "indexed" };
 
   if (q) {
+    const sequelizeInstance = getSequelize();
     where[Op.or as any] = [
       { title: { [Op.iLike]: `%${q}%` } },
       { ministry: { [Op.iLike]: `%${q}%` } },
-      { type: { [Op.iLike]: `%${q}%` } },
+      // Cast enum to text for partial matching
+      sequelizeInstance.literal(
+        `"Document"."type"::text ILIKE '%${q.replace(/'/g, "''")}%'`,
+      ),
     ];
   }
   if (type) where.type = type;
