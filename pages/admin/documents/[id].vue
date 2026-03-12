@@ -2,15 +2,14 @@
   <div class="max-w-2xl">
     <div class="mb-6">
       <div class="flex items-start justify-between gap-4 mb-4">
-        <UBreadcrumb :links="[{ label: 'Manajemen Dokumen', to: '/admin' }, { label: 'Edit Dokumen' }]" />
-        <UButton
-          size="sm"
-          color="red"
-          variant="outline"
-          icon="i-heroicons-trash"
-          :loading="deleting"
-          @click="confirmDelete"
-        >
+        <div class="flex items-center gap-3 min-w-0">
+          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="gray" size="sm" class="shrink-0"
+            @click="router.back()" />
+          <UBreadcrumb :links="[{ label: 'Manajemen Dokumen', to: '/admin' }, { label: 'Edit Dokumen' }]"
+            class="min-w-0 truncate" />
+        </div>
+        <UButton size="sm" color="red" variant="outline" icon="i-heroicons-trash" :loading="deleting"
+          @click="confirmDelete">
           Hapus
         </UButton>
       </div>
@@ -55,12 +54,7 @@
 
         <div class="flex gap-2 pt-2">
           <UButton type="submit" :loading="saving">Simpan Perubahan</UButton>
-          <UButton
-            variant="outline"
-            :loading="reindexing"
-            icon="i-heroicons-arrow-path"
-            @click="reindex"
-          >
+          <UButton variant="outline" :loading="reindexing" icon="i-heroicons-arrow-path" @click="reindex">
             Re-index
           </UButton>
           <UButton to="/admin" variant="ghost">Batal</UButton>
@@ -76,6 +70,7 @@ import type { Document, DocumentType } from '~/types'
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
+const router = useRouter()
 const { fetchDocument, updateDocument, deleteDocument } = useDocuments()
 
 const doc = ref<Document | null>(null)
