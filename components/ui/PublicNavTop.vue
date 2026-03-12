@@ -73,9 +73,9 @@ const userMenuItems = computed(() => [[
   },
 ], [
   {
-    label: 'Perpustakaan',
+    label: 'Manajemen Dokumen',
     icon: 'i-heroicons-squares-2x2',
-    to: '/admin/documents',
+    to: '/admin',
   },
   {
     label: 'Chat AI',
