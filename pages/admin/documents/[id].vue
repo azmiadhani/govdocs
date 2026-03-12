@@ -1,10 +1,19 @@
 <template>
   <div class="max-w-2xl">
     <div class="mb-6">
-      <UBreadcrumb
-        :links="[{ label: 'Admin', to: '/admin' }, { label: 'Edit Dokumen' }]"
-        class="mb-4"
-      />
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <UBreadcrumb :links="[{ label: 'Manajemen Dokumen', to: '/admin' }, { label: 'Edit Dokumen' }]" />
+        <UButton
+          size="sm"
+          color="red"
+          variant="outline"
+          icon="i-heroicons-trash"
+          :loading="deleting"
+          @click="confirmDelete"
+        >
+          Hapus
+        </UButton>
+      </div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Dokumen</h1>
     </div>
 
@@ -62,21 +71,22 @@
 </template>
 
 <script setup lang="ts">
-import type { Document } from '~/types'
+import type { Document, DocumentType } from '~/types'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
-const { fetchDocument, updateDocument } = useDocuments()
+const { fetchDocument, updateDocument, deleteDocument } = useDocuments()
 
 const doc = ref<Document | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 const reindexing = ref(false)
+const deleting = ref(false)
 const error = ref('')
 const saved = ref(false)
 
-const form = reactive({ title: '', type: 'other', ministry: '', publishedAt: '' })
+const form = reactive({ title: '', type: 'other' as DocumentType, ministry: '', publishedAt: '' })
 
 const typeOptions = [
   { label: 'Undang-Undang', value: 'law' },
@@ -87,10 +97,22 @@ const typeOptions = [
   { label: 'Lainnya', value: 'other' },
 ]
 
-const statusColor = computed(() => {
-  const map: Record<string, string> = { indexed: 'green', pending: 'yellow', error: 'red' }
+type BadgeColor = 'green' | 'yellow' | 'red' | 'gray'
+const statusColor = computed<BadgeColor>(() => {
+  const map: Record<string, BadgeColor> = { indexed: 'green', pending: 'yellow', error: 'red' }
   return map[doc.value?.status || ''] || 'gray'
 })
+
+async function confirmDelete() {
+  if (!confirm(`Hapus dokumen ini? Tindakan ini tidak dapat dibatalkan.`)) return
+  deleting.value = true
+  try {
+    await deleteDocument(doc.value!.id)
+    navigateTo('/admin')
+  } finally {
+    deleting.value = false
+  }
+}
 
 onMounted(async () => {
   try {

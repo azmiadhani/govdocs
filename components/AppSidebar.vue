@@ -124,16 +124,10 @@ const userNavItems = computed(() => [
 
 const adminNavItems = computed(() => [
   {
-    label: 'Dashboard',
-    icon: 'i-heroicons-squares-2x2',
-    to: '/admin',
-    active: route.path === '/admin',
-  },
-  {
-    label: 'Dokumen',
+    label: 'Manajemen Dokumen',
     icon: 'i-heroicons-document-text',
-    to: '/admin/documents',
-    active: route.path.startsWith('/admin/documents'),
+    to: '/admin',
+    active: route.path === '/admin' || route.path.startsWith('/admin/documents'),
   },
   {
     label: 'Pengguna',

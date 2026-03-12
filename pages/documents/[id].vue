@@ -13,7 +13,26 @@
     </div>
 
     <div v-else-if="doc">
-      <UBreadcrumb :links="[{ label: 'Dokumen', to: '/documents' }, { label: doc.title }]" class="mb-6" />
+      <div class="flex items-center justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3 min-w-0">
+          <UButton icon="i-heroicons-arrow-left" variant="ghost" color="gray" size="sm" class="shrink-0"
+            @click="router.back()" />
+          <UBreadcrumb :links="[{ label: 'Dokumen', to: '/' }, { label: doc.title }]" class="min-w-0 truncate" />
+        </div>
+        <div v-if="isAdmin" class="flex items-center gap-2 shrink-0">
+          <UButton :to="`/admin/documents/${doc.id}`" size="sm" variant="outline" icon="i-heroicons-pencil">
+            Edit
+          </UButton>
+          <UButton size="sm" variant="outline" icon="i-heroicons-arrow-path" :loading="reindexing"
+            @click="confirmReindex">
+            Re-index
+          </UButton>
+          <UButton size="sm" color="red" variant="outline" icon="i-heroicons-trash" :loading="deleting"
+            @click="confirmDelete">
+            Hapus
+          </UButton>
+        </div>
+      </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Left column (65%) -->
@@ -49,7 +68,8 @@
             <h2 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Pratinjau Dokumen</h2>
             <PdfPreview :src="previewUrl" />
             <div class="flex gap-2 mt-3">
-              <UButton :href="previewUrl" target="_blank" variant="outline" size="sm" icon="i-heroicons-arrow-top-right-on-square">
+              <UButton :href="previewUrl" target="_blank" variant="outline" size="sm"
+                icon="i-heroicons-arrow-top-right-on-square">
                 Buka Dokumen Penuh
               </UButton>
               <UButton :href="downloadUrl" size="sm" icon="i-heroicons-arrow-down-tray" download>
@@ -62,12 +82,16 @@
           <div>
             <h2 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Poin Utama</h2>
             <div v-if="keyPoints?.length" class="space-y-2">
-              <div v-for="(point, i) in keyPoints" :key="i" class="flex gap-3 p-3 bg-primary-50 dark:bg-primary-950/20 rounded-lg">
-                <span class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center shrink-0 font-bold">{{ i + 1 }}</span>
+              <div v-for="(point, i) in keyPoints" :key="i"
+                class="flex gap-3 p-3 bg-primary-50 dark:bg-primary-950/20 rounded-lg">
+                <span
+                  class="w-6 h-6 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center shrink-0 font-bold">{{
+                    i + 1 }}</span>
                 <p class="text-sm text-gray-700 dark:text-gray-300">{{ point }}</p>
               </div>
             </div>
-            <div v-else class="flex items-center gap-2 text-sm text-gray-400 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div v-else
+              class="flex items-center gap-2 text-sm text-gray-400 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
               <UIcon name="i-heroicons-information-circle" class="w-4 h-4 shrink-0" />
               Analisis AI belum tersedia untuk dokumen ini
             </div>
@@ -76,10 +100,12 @@
           <!-- AI Summary -->
           <div>
             <h2 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Ringkasan AI</h2>
-            <div v-if="summary" class="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+            <div v-if="summary"
+              class="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
               <MarkdownRenderer :content="summary" />
             </div>
-            <div v-else class="flex items-center gap-2 text-sm text-gray-400 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div v-else
+              class="flex items-center gap-2 text-sm text-gray-400 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
               <UIcon name="i-heroicons-information-circle" class="w-4 h-4 shrink-0" />
               Analisis AI belum tersedia untuk dokumen ini
             </div>
@@ -136,7 +162,8 @@
                 Tanya Dokumen Ini
               </h3>
             </template>
-            <p class="text-sm text-gray-500 mb-4">Gunakan AI untuk bertanya tentang isi dokumen ini secara interaktif.</p>
+            <p class="text-sm text-gray-500 mb-4">Gunakan AI untuk bertanya tentang isi dokumen ini secara interaktif.
+            </p>
             <template v-if="isLoggedIn">
               <NuxtLink :to="`/chat/${doc.id}`">
                 <UButton block icon="i-heroicons-chat-bubble-left-right">Mulai Chat</UButton>
@@ -155,16 +182,12 @@
               <h3 class="font-semibold text-sm">Dokumen Terkait</h3>
             </template>
             <div class="space-y-3">
-              <NuxtLink
-                v-for="rel in relatedDocuments"
-                :key="rel.id"
-                :to="`/documents/${rel.id}`"
-                class="block group"
-              >
+              <NuxtLink v-for="rel in relatedDocuments" :key="rel.id" :to="`/documents/${rel.id}`" class="block group">
                 <div class="flex gap-2 items-start">
                   <UBadge :label="rel.type" variant="subtle" size="xs" class="mt-0.5 shrink-0" />
                   <div>
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
+                    <p
+                      class="text-sm font-medium text-gray-800 dark:text-gray-200 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
                       {{ rel.title }}
                     </p>
                     <p v-if="rel.ministry" class="text-xs text-gray-400 mt-0.5">{{ rel.ministry }}</p>
@@ -189,7 +212,36 @@ import type { Document } from '~/types'
 definePageMeta({ layout: 'public' })
 
 const route = useRoute()
-const { isLoggedIn } = useAuth()
+const router = useRouter()
+const { isLoggedIn, isAdmin } = useAuth()
+const { deleteDocument } = useDocuments()
+
+const deleting = ref(false)
+const reindexing = ref(false)
+
+async function confirmReindex() {
+  if (!confirm('Re-index dokumen ini? Proses ini akan memperbarui data pencarian.')) return
+  reindexing.value = true
+  try {
+    await $fetch('/api/admin/reindex', { method: 'POST', body: { documentId: route.params.id } })
+    useToast().add({ title: 'Re-index dimulai', description: 'Dokumen sedang diproses ulang.', color: 'green' })
+  } catch (e: any) {
+    useToast().add({ title: 'Gagal', description: e?.data?.message || 'Re-index gagal.', color: 'red' })
+  } finally {
+    reindexing.value = false
+  }
+}
+
+async function confirmDelete() {
+  if (!confirm(`Hapus dokumen ini? Tindakan ini tidak dapat dibatalkan.`)) return
+  deleting.value = true
+  try {
+    await deleteDocument(route.params.id as string)
+    navigateTo('/documents')
+  } finally {
+    deleting.value = false
+  }
+}
 
 const doc = ref<Document | null>(null)
 const summary = ref<string | null>(null)
