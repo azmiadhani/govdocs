@@ -1,7 +1,7 @@
 # CLAUDEUNDERSTANDING.md
 # GovDocs AI — Complete System Understanding
 > Produced on: 2026-03-12 | Author: Claude Code (claude-sonnet-4-6)
-> Status: Read-only analysis. No code was modified.
+> Last updated: 2026-03-12 — Smart Search (Semantic Search) feature implemented
 
 ---
 
@@ -14,8 +14,10 @@ The platform serves three main personas:
 - **Authenticated users (viewer/editor)** — use AI-powered RAG chat, view document summaries, upload documents (editor+)
 - **Administrators** — manage documents (upload, edit, re-index, delete), manage users (role changes), review feedback, manage changelogs
 
-The core value loop is:
-> Upload PDF → Auto-index (extract + chunk + embed) → User searches or chats → RAG retrieves relevant chunks → Claude generates grounded response → Response streams in real-time
+The core value loops are:
+> Upload PDF → Auto-index (extract + chunk + embed) → User searches or chats → RAG retrieves relevant chunks → AI generates grounded response → Response streams in real-time
+
+> User types natural language query → Smart Search embeds query → Vector similarity search → Group + rank documents → AI synthesizes answer → Highlight snippets navigate to exact PDF page
 
 ---
 
@@ -26,6 +28,7 @@ The core value loop is:
 |---|---|---|
 | Landing page with stats | `/` | `/api/public/stats`, `/api/public/documents/latest`, `/api/public/popular-searches` |
 | Document search + filter | `/documents` | `/api/public/documents` |
+| **Smart Search (semantic)** | `/documents` (modal) | **`POST /api/ai/smart-search`** |
 | Document detail + PDF preview | `/documents/:id` | `/api/public/documents/:id` |
 | About / FAQ / Contact | `/about`, `/faq`, `/contact` | `/api/public/contact` |
 | Public changelog | `/changelog` | `/api/public/changelog` |
@@ -70,7 +73,7 @@ Browser
   Nuxt 3 SSR (Nitro)
   ├── /api/auth/*       JWT login / logout / me
   ├── /api/documents/*  CRUD + multipart upload (editor+)
-  ├── /api/ai/*         chat (SSE streaming) + summarize
+  ├── /api/ai/*         chat (SSE streaming) + summarize + smart-search
   ├── /api/chat/*       sessions + messages
   ├── /api/admin/*      users, feedback, changelog, reindex (admin)
   └── /api/public/*     stats, documents, changelog, contact (no auth)
@@ -274,6 +277,119 @@ POST /api/ai/summarize
 
 **IMPORTANT NOTE:** Despite the file being named `claude.ts` and the function `streamClaude()`, the actual model used is **OpenAI gpt-4o-mini**, not Anthropic Claude. The CLAUDE.md spec says `claude-sonnet-4-5` should be used. This is a discrepancy — the Anthropic SDK (`@anthropic-ai/sdk`) is installed but appears unused in the current implementation.
 
+### D. Smart Search / Semantic Search — Hybrid Retrieval (non-streaming, public)
+> Last updated: upgraded from pure vector to hybrid retrieval + sentence-level snippets + confidence metric.
+
+```
+POST /api/ai/smart-search
+  Body: {query: string}
+  Auth: None (public)
+  │
+  ├── 1. Validate: query non-empty, length ≤ 500 chars
+  │
+  ├── 2. Cache check (Redis — sha256 key, no KEYS pattern):
+  │       key = smart-search:{sha256(normalizedQuery)}
+  │       TTL = 300s (5 min)
+  │       → Return cached result immediately if hit
+  │
+  ├── 3. embedText(rawQuery)
+  │       → OpenAI text-embedding-3-small, 1536 dims
+  │
+  ├── 4. Hybrid retrieval — run BOTH in parallel (Promise.all):
+  │
+  │   A) vectorSearch({embedding, topK: 30})
+  │         → Raw pgvector SQL: cosine distance <=> on document_chunks
+  │         → Returns chunks sorted by distance ASC (lowest = most similar)
+  │         → Score = 1 - cosineDistance
+  │
+  │   B) keywordSearch(normalizedQuery, topK: 20)
+  │         → Per-word ILIKE on dc.content + d.title
+  │         → Words: significant (≥3 chars), dedupe stopwords, longest-first, max 5
+  │         → Pattern: %word% ORed across all selected words
+  │         → Returns flag: titleMatch (bool) for boost calculation
+  │
+  ├── 5. mergeResults(vectorChunks, keywordChunks) — hybrid scoring:
+  │       Chunk ID used as deduplication key.
+  │       vector-only  → finalScore = 1 - cosineDistance
+  │       keyword-only → finalScore = BOOST_TITLE(0.25) | BOOST_CONTENT(0.15)
+  │       hybrid       → finalScore = vectorScore + boost  (capped at 1.0)
+  │       → Rewards chunks confirmed by BOTH signals
+  │
+  ├── 6. Group merged chunks by documentId:
+  │       → Track bestScore and totalChunks per document
+  │       → Keep top 3 chunks per document (by insertion order = best first)
+  │       → Sort documents by bestScore DESC
+  │       → Take top 8 documents
+  │
+  ├── 7. Document.findAll(topDocIds) — batched metadata fetch
+  │       → ministry, type, publishedAt  (does NOT modify vectorSearch utility)
+  │
+  ├── 8. Build AI context block (chunks from all 8 docs, up to 24 chunks):
+  │       "Dokumen: {title}\nHalaman: {page}\nKonten: {content}"
+  │       → Joined with '\n\n---\n\n' separators
+  │
+  ├── 9. callClaude(buildSmartSearchSystemPrompt(context), query, 2048)
+  │       → OpenAI gpt-4o-mini (non-streaming)
+  │       → Prompt: answer only from context, cite doc + page, Bahasa Indonesia
+  │       → Returns markdown answer string
+  │
+  ├── 10. Build highlight snippets — sentence-level scoring:
+  │         extractBestSnippet(chunk.content, normalizedQuery, maxLen=300)
+  │         ├── Split chunk text into sentences (on . ! ? \n)
+  │         ├── Score each sentence: matchCount / sqrt(wordCount)  [TF-style]
+  │         │     → Rewards dense, on-topic sentences over padded ones
+  │         ├── Pick best-scoring sentence
+  │         ├── Return best ± 1 surrounding sentences for context
+  │         └── Fallback to character-based snippet if no query words match
+  │
+  ├── 11. Compute confidence metric:
+  │         breadth    = min(totalSupportingChunks / 5, 1.0)
+  │         topScore   = best document's finalScore
+  │         rerankScore = harmonic_mean(breadth, topScore)
+  │                     = 2 * breadth * topScore / (breadth + topScore)
+  │         → Harmonic mean penalises if EITHER dimension is weak
+  │
+  ├── 12. cacheSet(key, result, 300)
+  │
+  └── Return:
+        {
+          answer: string (markdown),
+          documents: [{
+            id, title, ministry, type, year, score,
+            highlights: [{chunkId, snippet, pageNumber}]
+          }],
+          confidence: {
+            supportingChunks: number,   // total chunks retrieved
+            topScore: number,           // best finalScore (0–1)
+            rerankScore: number         // harmonic quality index (0–1)
+          }
+        }
+```
+
+**Hybrid scoring rationale:**
+| Match type | Mechanism | Typical finalScore |
+|---|---|---|
+| Strong semantic + keyword | vector (0.85) + title boost (0.25) | 1.0 (capped) |
+| Semantic only | vector score alone | 0.5 – 0.95 |
+| Keyword title match only | BOOST_TITLE | 0.25 |
+| Keyword content match only | BOOST_CONTENT | 0.15 |
+
+**Snippet improvement:**
+- Old: character slice of first 200 chars — biased toward document boilerplate at chunk start
+- New: TF-style sentence scoring picks the sentence most densely matching query terms, then expands ±1 sentence for readability. Stopwords excluded from scoring. Fallback to char-based when no query terms found.
+
+**Confidence interpretation (frontend):**
+| rerankScore | Label | Color |
+|---|---|---|
+| ≥ 0.75 | Tinggi (High) | Green |
+| 0.45–0.74 | Sedang (Medium) | Yellow |
+| < 0.45 | Rendah (Low) | Orange |
+
+**Navigation from Smart Search results:**
+- Clicking a result navigates to `/documents/:id?page=N`
+- `pages/documents/[id].vue` reads `route.query.page`, appends `#page=N` to the PDF iframe URL
+- Standard PDF open parameter — supported natively by Chrome and Firefox built-in PDF viewer
+
 ---
 
 ## 6. Authentication Flow
@@ -394,6 +510,7 @@ Server-side Route Protection
 | `StreamingText` | `components/ui/StreamingText.vue` | Animated streaming text display |
 | `LoadingDots` | `components/ui/LoadingDots.vue` | Loading indicator |
 | `MarkdownRenderer` | `components/ui/MarkdownRenderer.vue` | @nuxtjs/mdc markdown render |
+| **`SmartSearchResult`** | **`components/SmartSearchResult.vue`** | **AI answer + document grid with highlight snippets** |
 
 ### Composables
 | Composable | State Management | Key Methods |
@@ -402,6 +519,7 @@ Server-side Route Protection
 | `useDocuments` | `ref` (local) | fetchDocuments, fetchDocument, updateDocument, deleteDocument, uploadDocument |
 | `useChat` | `useState` (SSR-safe) | createSession, loadHistory, fetchSessions, sendMessage (streaming) |
 | `useAISummary` | `ref` (local) | fetchSummary |
+| **`useSmartSearch`** | **`ref` (local)** | **search(query), clear() — loading, result, error, lastQuery** |
 
 ### Plugins
 | Plugin | Runs On | Purpose |
@@ -425,6 +543,7 @@ Server-side Route Protection
 | DELETE | /api/documents/:id | Admin | Invalidates | Delete file + DB cascade |
 | POST | /api/ai/chat | Yes | No | RAG chat stream (SSE) |
 | POST | /api/ai/summarize | Yes | 1 hr | Generate or return cached summary |
+| **POST** | **/api/ai/smart-search** | **No** | **5 min (sha256 key)** | **Semantic search: embed → vector search → group → AI answer + highlights** |
 | GET | /api/chat/sessions | Yes | No | List user sessions |
 | POST | /api/chat/sessions | Yes | No | Create session |
 | PATCH | /api/chat/sessions/:id | Yes | No | Update title |
@@ -462,8 +581,11 @@ Server-side Route Protection
 | `summary:${id}` | 1 hr | Delete, reindex |
 | `public:changelog` | 1 hr | Changelog create/update/delete |
 | `public:popular-searches` | 1 hr | Time-based only |
+| **`smart-search:{sha256(query)}`** | **5 min** | **Time-based only (no invalidation needed — query content is immutable)** |
 
 **Concern:** `cacheDelPattern()` uses Redis `KEYS` command which is O(N) on keyspace. On large Redis instances this can block. Should use Redis `SCAN` instead.
+
+**Smart Search cache design note:** Smart search uses `sha256(normalizedQuery)` as the key suffix — deterministic, collision-resistant, fixed-length regardless of query complexity. Because the cache key is derived solely from the query content (not document state), no invalidation logic is required. Stale results expire naturally after 5 minutes.
 
 ### Connection Pooling
 - Sequelize pool: `max: 10, min: 0, idle: 10000ms`
@@ -482,6 +604,13 @@ Server-side Route Protection
 ---
 
 ## 10. Identified Technical Debt
+
+### Resolved by Smart Search implementation
+- ~~**Item 8**: No max-length enforcement on query input~~ — Smart search enforces `MAX_QUERY_LENGTH = 500` chars server-side.
+- **Cache key safety**: Smart search uses deterministic `GET`/`SET` only — never `cacheDelPattern()`.
+- ~~**Snippet quality**: Character-based snippet biased toward boilerplate~~ — Replaced with sentence-level TF-style scoring that surfaces the most query-relevant sentence in each chunk.
+- ~~**Recall**: Pure vector search misses exact-term documents~~ — Hybrid retrieval combines vector similarity + per-word ILIKE keyword search with additive scoring boosts.
+- **Confidence signal added**: Every search result now includes `confidence.rerankScore` (harmonic mean of evidence breadth × top similarity), surfaced in the UI as a labelled colour bar.
 
 ### Critical
 
@@ -516,6 +645,10 @@ Server-side Route Protection
 13. **`tags` as `TEXT[]` PostgreSQL array**: Sequelize does not natively support PostgreSQL arrays well. Works correctly via raw migration SQL, but array operations (contains, overlap) would require raw queries if added in future.
 
 14. **No soft deletes**: Documents deleted are permanently removed (CASCADE). No trash/recovery mechanism.
+
+15. **Smart search cache staleness after re-index**: If a document is re-indexed, existing `smart-search:*` entries may return stale AI answers (including stale hybrid keyword hits) until the 5-minute TTL expires. Acceptable at current scale; at higher re-index frequency a targeted invalidation by document ID prefix would be needed.
+
+16. **Smart search result XSS safety**: `SmartSearchResult.vue` uses `v-html` for highlight rendering. Mitigated by: (a) escaping all HTML in snippet text before injection, (b) only injecting controlled `<mark>` tags via regex replacement on the already-escaped string. Regex targets query word matches only.
 
 ---
 
@@ -579,3 +712,7 @@ Server-side Route Protection
 9. **`SearchLog` table**: Search logs are written on every public document search request. At scale this table will grow very fast with no TTL or archiving. Is there a data retention policy?
 
 10. **Production deployment target**: Is this deployed on a VPS (Docker Compose present), Vercel, Railway, or a managed Kubernetes cluster? The `Dockerfile` and `docker-compose.yml` suggest self-hosted. This affects how the async ingestion concern is resolved (queue vs worker process).
+
+11. **Smart search rate limiting**: `POST /api/ai/smart-search` is public and calls OpenAI twice per uncached request (embed + generation). No rate limiting is in place — a burst of requests could exhaust OpenAI quota or incur unexpected cost.
+
+12. **Smart search `#page=N` browser support**: The `#page=N` PDF fragment is honoured by Chrome and Firefox's built-in PDF viewer, but not all browsers or embedded PDF plugins. Safari on iOS may ignore it. This is a graceful-degradation scenario (user still lands on the document, just not the exact page).

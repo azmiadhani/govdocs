@@ -27,18 +27,60 @@
       <!-- AI Answer card -->
       <UCard class="border-primary-200 dark:border-primary-800">
         <template #header>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <div class="w-6 h-6 rounded-md bg-primary-500 flex items-center justify-center shrink-0">
               <UIcon name="i-heroicons-sparkles" class="w-3.5 h-3.5 text-white" />
             </div>
             <h3 class="font-semibold text-sm text-gray-900 dark:text-white">Jawaban AI</h3>
-            <UBadge label="Berdasarkan dokumen terindeks" size="xs" variant="subtle" color="primary" class="ml-auto" />
+
+            <!-- Confidence badge (only shown when result has confidence data) -->
+            <UTooltip
+              v-if="result.confidence"
+              :text="confidenceTooltip"
+              class="ml-auto"
+            >
+              <div class="flex items-center gap-1.5 cursor-default">
+                <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full transition-all"
+                    :class="confidenceBarColor"
+                    :style="{ width: `${Math.round(result.confidence.rerankScore * 100)}%` }"
+                  />
+                </div>
+                <span class="text-xs font-medium" :class="confidenceTextColor">
+                  {{ confidenceLabel }}
+                </span>
+              </div>
+            </UTooltip>
+
+            <UBadge
+              v-else
+              label="Berdasarkan dokumen terindeks"
+              size="xs"
+              variant="subtle"
+              color="primary"
+              class="ml-auto"
+            />
           </div>
         </template>
 
         <div class="prose prose-sm dark:prose-invert max-w-none">
           <MarkdownRenderer :content="result.answer" />
         </div>
+
+        <!-- Confidence detail strip (subtle, below answer) -->
+        <template v-if="result.confidence" #footer>
+          <div class="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+            <span class="flex items-center gap-1">
+              <UIcon name="i-heroicons-document-text" class="w-3 h-3" />
+              {{ result.confidence.supportingChunks }} kutipan ditemukan
+            </span>
+            <span class="flex items-center gap-1">
+              <UIcon name="i-heroicons-chart-bar" class="w-3 h-3" />
+              Skor relevansi: {{ Math.round(result.confidence.topScore * 100) }}%
+            </span>
+          </div>
+        </template>
       </UCard>
 
       <!-- No documents found -->
@@ -149,6 +191,39 @@ const TYPE_COLORS: Record<string, string> = {
   guideline: 'green',
   other: 'gray',
 }
+
+// ── Confidence computed helpers ───────────────────────────────────────────────
+
+const confidenceScore = computed(() => props.result?.confidence?.rerankScore ?? 0)
+
+const confidenceLabel = computed(() => {
+  const s = confidenceScore.value
+  if (s >= 0.75) return 'Tinggi'
+  if (s >= 0.45) return 'Sedang'
+  return 'Rendah'
+})
+
+const confidenceBarColor = computed(() => {
+  const s = confidenceScore.value
+  if (s >= 0.75) return 'bg-green-500'
+  if (s >= 0.45) return 'bg-yellow-500'
+  return 'bg-orange-400'
+})
+
+const confidenceTextColor = computed(() => {
+  const s = confidenceScore.value
+  if (s >= 0.75) return 'text-green-600 dark:text-green-400'
+  if (s >= 0.45) return 'text-yellow-600 dark:text-yellow-400'
+  return 'text-orange-500 dark:text-orange-400'
+})
+
+const confidenceTooltip = computed(() => {
+  const c = props.result?.confidence
+  if (!c) return ''
+  return `${c.supportingChunks} kutipan · relevansi ${Math.round(c.topScore * 100)}% · rerank ${Math.round(c.rerankScore * 100)}%`
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function buildDocLink(doc: NonNullable<SmartSearchResult['documents']>[number]): string {
   const best = doc.highlights[0]

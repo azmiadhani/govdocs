@@ -186,7 +186,18 @@ export interface SmartSearchDocument {
   highlights: SmartSearchHighlight[]
 }
 
+export interface SmartSearchConfidence {
+  /** Total chunks retrieved across all result documents */
+  supportingChunks: number
+  /** Highest finalScore among all result documents (0–1) */
+  topScore: number
+  /** Harmonic mean of evidence breadth and top score (0–1) */
+  rerankScore: number
+}
+
 export interface SmartSearchResult {
   answer: string
   documents: SmartSearchDocument[]
+  /** Quality signal for the search results — may be absent in cached legacy responses */
+  confidence?: SmartSearchConfidence
 }
