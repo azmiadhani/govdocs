@@ -262,7 +262,17 @@ const typeLabel = computed(() => TYPE_LABELS[doc.value?.type || ''] || doc.value
 const typeColor = computed(() => TYPE_COLORS[doc.value?.type || ''] || 'gray')
 
 const filename = computed(() => doc.value?.filePath?.split('/').pop() || '')
-const previewUrl = computed(() => `/api/public/files/${filename.value}?download=false`)
+
+// ?page=N passed from smart search highlights — appended as #page=N fragment so the
+// browser's built-in PDF viewer opens at the correct page (standard PDF open parameter).
+const initialPage = computed(() => {
+  const p = parseInt(route.query.page as string)
+  return p > 0 ? p : null
+})
+const previewUrl = computed(() => {
+  const base = `/api/public/files/${filename.value}?download=false`
+  return initialPage.value ? `${base}#page=${initialPage.value}` : base
+})
 const downloadUrl = computed(() => `/api/public/files/${filename.value}?download=true`)
 
 onMounted(async () => {

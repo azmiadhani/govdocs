@@ -168,3 +168,25 @@ export interface SearchLog {
   resultCount: number
   createdAt: string
 }
+
+// Smart Search
+export interface SmartSearchHighlight {
+  chunkId: string
+  snippet: string
+  pageNumber: number
+}
+
+export interface SmartSearchDocument {
+  id: string
+  title: string
+  ministry: string
+  type: string
+  year: string | null
+  score: number
+  highlights: SmartSearchHighlight[]
+}
+
+export interface SmartSearchResult {
+  answer: string
+  documents: SmartSearchDocument[]
+}

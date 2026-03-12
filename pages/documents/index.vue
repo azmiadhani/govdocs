@@ -31,8 +31,27 @@
             </h1>
             <p class="text-sm text-gray-500 mt-0.5">{{ total.toLocaleString('id-ID') }} dokumen ditemukan</p>
           </div>
-          <!-- View toggle -->
-          <div class="flex items-center gap-1 shrink-0">
+          <!-- Actions row -->
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Smart Search trigger -->
+            <UButton
+              size="sm"
+              icon="i-heroicons-sparkles"
+              color="primary"
+              variant="soft"
+              label="Cari Cerdas"
+              class="hidden sm:flex"
+              @click="openSmartSearch"
+            />
+            <UButton
+              size="sm"
+              icon="i-heroicons-sparkles"
+              color="primary"
+              variant="soft"
+              class="sm:hidden"
+              @click="openSmartSearch"
+            />
+            <!-- View toggle -->
             <UButton
               :variant="viewMode === 'grid' ? 'solid' : 'ghost'"
               icon="i-heroicons-squares-2x2"
@@ -89,6 +108,70 @@
         </div>
       </div>
     </div>
+
+    <!-- Smart Search Modal -->
+    <UModal v-model="smartSearchOpen" :ui="{ width: 'max-w-3xl' }">
+      <UCard :ui="{ body: { padding: 'p-0' }, header: { padding: 'px-5 pt-5 pb-0' }, footer: { padding: 'p-0' } }">
+        <template #header>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center shrink-0">
+                <UIcon name="i-heroicons-sparkles" class="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h2 class="font-semibold text-gray-900 dark:text-white text-base leading-tight">Pencarian Cerdas</h2>
+                <p class="text-xs text-gray-400">Tanyakan apa saja dalam bahasa natural</p>
+              </div>
+            </div>
+            <UButton icon="i-heroicons-x-mark" variant="ghost" color="gray" size="sm" @click="smartSearchOpen = false" />
+          </div>
+          <!-- Query input -->
+          <form @submit.prevent="runSmartSearch">
+            <div class="flex gap-2">
+              <UInput
+                v-model="smartQuery"
+                placeholder="Contoh: Peraturan terbaru tentang pengadaan barang dan jasa..."
+                icon="i-heroicons-magnifying-glass"
+                class="flex-1"
+                size="md"
+                autofocus
+                :disabled="ssLoading"
+              />
+              <UButton
+                type="submit"
+                size="md"
+                icon="i-heroicons-sparkles"
+                :loading="ssLoading"
+                :disabled="!smartQuery.trim()"
+              >
+                Cari
+              </UButton>
+            </div>
+          </form>
+        </template>
+
+        <!-- Results area -->
+        <div class="px-5 py-5 max-h-[65vh] overflow-y-auto">
+          <!-- Idle state -->
+          <div
+            v-if="!ssLoading && !ssResult && !ssError"
+            class="py-10 text-center text-gray-400"
+          >
+            <UIcon name="i-heroicons-magnifying-glass-circle" class="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p class="text-sm">Masukkan pertanyaan di atas untuk memulai pencarian semantik</p>
+            <p class="text-xs text-gray-300 mt-1">Sistem akan mencari dan merangkum dokumen yang relevan</p>
+          </div>
+
+          <SmartSearchResult
+            v-else
+            :loading="ssLoading"
+            :result="ssResult"
+            :error="ssError"
+            :query="ssLastQuery"
+          />
+        </div>
+      </UCard>
+    </UModal>
   </div>
 </template>
 
@@ -185,6 +268,22 @@ function onReset() {
 }
 
 onMounted(load)
+
+// Smart Search modal
+const smartSearchOpen = ref(false)
+const smartQuery = ref('')
+const { loading: ssLoading, result: ssResult, error: ssError, lastQuery: ssLastQuery, search: ssSearch, clear: ssClear } = useSmartSearch()
+
+function openSmartSearch() {
+  // Pre-fill with current keyword search if any
+  if (q.value && !smartQuery.value) smartQuery.value = q.value
+  ssClear()
+  smartSearchOpen.value = true
+}
+
+function runSmartSearch() {
+  ssSearch(smartQuery.value)
+}
 
 useHead({ title: computed(() => q.value ? `Hasil: "${q.value}"` : 'Dokumen') })
 </script>

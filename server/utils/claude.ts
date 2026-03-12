@@ -94,6 +94,21 @@ ${context}
 - Gunakan format markdown yang jelas dan terstruktur`
 }
 
+export function buildSmartSearchSystemPrompt(context: string): string {
+  return `Anda adalah asisten pencarian dokumen pemerintah Indonesia. Berikan jawaban komprehensif berdasarkan kutipan dokumen relevan berikut.
+
+## Konteks Dokumen
+
+${context}
+
+## Instruksi
+- Jawab pertanyaan pengguna HANYA berdasarkan konteks dokumen di atas
+- Sebutkan nama dokumen dan nomor halaman saat merujuk informasi spesifik (contoh: "Berdasarkan [Judul Dokumen], Halaman X...")
+- Jika konteks tidak memuat informasi yang cukup, sampaikan dengan jelas
+- Tulis dalam Bahasa Indonesia menggunakan format markdown yang terstruktur
+- Jangan tambahkan informasi dari luar konteks yang diberikan`
+}
+
 export function buildSummarizationPrompt(): string {
   return `Anda adalah analis ahli dokumen pemerintah Indonesia. Tugas Anda adalah menghasilkan analisis terstruktur dalam Bahasa Indonesia.
 
