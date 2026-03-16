@@ -1,9 +1,28 @@
 <template>
+  <!-- Mobile backdrop -->
+  <Transition
+    enter-active-class="transition-opacity duration-300"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
+    leave-active-class="transition-opacity duration-300"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
+    <div
+      v-if="open"
+      class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+      @click="$emit('close')"
+    />
+  </Transition>
+
+  <!-- Sidebar -->
   <aside
-    class="flex flex-col w-60 shrink-0 h-screen sticky top-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+    class="fixed lg:sticky top-0 left-0 z-50 flex flex-col w-60 shrink-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-transform duration-300 ease-in-out lg:translate-x-0"
+    :class="open ? 'translate-x-0' : '-translate-x-full'"
+  >
     <!-- Logo -->
-    <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-800">
-      <NuxtLink to="/" class="flex items-center gap-2.5">
+    <div class="px-5 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2">
+      <NuxtLink to="/" class="flex items-center gap-2.5" @click="$emit('close')">
         <div class="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center shrink-0">
           <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-white" />
         </div>
@@ -11,6 +30,14 @@
           GovDocs <span class="text-primary-500">AI</span>
         </span>
       </NuxtLink>
+      <UButton
+        icon="i-heroicons-x-mark"
+        variant="ghost"
+        color="gray"
+        size="xs"
+        class="lg:hidden shrink-0"
+        @click="$emit('close')"
+      />
     </div>
 
     <!-- Navigation -->
@@ -26,6 +53,7 @@
         :class="item.active
           ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'"
+        @click="$emit('close')"
       >
         <UIcon :name="item.icon" class="w-4 h-4 shrink-0" />
         {{ item.label }}
@@ -43,6 +71,7 @@
           :class="item.active
             ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'"
+          @click="$emit('close')"
         >
           <span class="flex items-center gap-2.5">
             <UIcon :name="item.icon" class="w-4 h-4 shrink-0" />
@@ -61,6 +90,16 @@
 
     <!-- User section -->
     <div class="px-3 py-4 border-t border-gray-100 dark:border-gray-800 space-y-1">
+      <!-- Color mode toggle -->
+      <button
+        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+        @click="toggleColorMode"
+      >
+        <UIcon :name="colorModeIcon" class="w-4 h-4 shrink-0" />
+        <span class="flex-1 text-left">{{ colorModeLabel }}</span>
+        <span class="text-xs text-gray-400 dark:text-gray-500">{{ colorModeHint }}</span>
+      </button>
+
       <!-- Public site link for admins -->
       <a
         v-if="isAdmin"
@@ -103,9 +142,38 @@
 </template>
 
 <script setup lang="ts">
+defineProps<{ open?: boolean }>()
+defineEmits<{ close: [] }>()
+
 const { user, logout, isAdmin } = useAuth()
 const route = useRoute()
 const unreadCount = ref(0)
+const colorMode = useColorMode()
+
+const colorModeIcon = computed(() => {
+  if (colorMode.preference === 'system') return 'i-heroicons-computer-desktop'
+  return colorMode.preference === 'dark' ? 'i-heroicons-moon' : 'i-heroicons-sun'
+})
+
+const colorModeLabel = computed(() => {
+  if (colorMode.preference === 'system') return 'Tema Otomatis'
+  return colorMode.preference === 'dark' ? 'Mode Gelap' : 'Mode Terang'
+})
+
+const colorModeHint = computed(() => {
+  if (colorMode.preference === 'system') return 'sistem'
+  return colorMode.preference === 'dark' ? 'gelap' : 'terang'
+})
+
+function toggleColorMode() {
+  if (colorMode.preference === 'system') {
+    colorMode.preference = 'dark'
+  } else if (colorMode.preference === 'dark') {
+    colorMode.preference = 'light'
+  } else {
+    colorMode.preference = 'system'
+  }
+}
 
 const userNavItems = computed(() => [
   {

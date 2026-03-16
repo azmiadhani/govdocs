@@ -23,6 +23,12 @@ export default defineNuxtConfig({
     '@nuxtjs/mdc',
   ],
 
+  colorMode: {
+    preference: 'system',
+    fallback: 'light',
+    storageKey: 'govdocs-color-mode',
+  },
+
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {

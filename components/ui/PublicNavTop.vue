@@ -28,6 +28,16 @@
 
       <!-- Right actions -->
       <div class="flex items-center gap-2 shrink-0">
+        <!-- Color mode toggle -->
+        <UButton
+          :icon="colorModeIcon"
+          variant="ghost"
+          color="gray"
+          size="sm"
+          :aria-label="colorModeLabel"
+          @click="toggleColorMode"
+        />
+
         <template v-if="isLoggedIn">
           <UDropdown :items="userMenuItems" :popper="{ placement: 'bottom-end' }">
             <UButton variant="ghost" size="sm" color="gray" class="gap-1.5 px-2">
@@ -58,6 +68,27 @@
 <script setup lang="ts">
 const { user, isLoggedIn, logout } = useAuth()
 const route = useRoute()
+const colorMode = useColorMode()
+
+const colorModeIcon = computed(() => {
+  if (colorMode.preference === 'system') return 'i-heroicons-computer-desktop'
+  return colorMode.preference === 'dark' ? 'i-heroicons-moon' : 'i-heroicons-sun'
+})
+
+const colorModeLabel = computed(() => {
+  if (colorMode.preference === 'system') return 'Tema Otomatis'
+  return colorMode.preference === 'dark' ? 'Mode Gelap' : 'Mode Terang'
+})
+
+function toggleColorMode() {
+  if (colorMode.preference === 'system') {
+    colorMode.preference = 'dark'
+  } else if (colorMode.preference === 'dark') {
+    colorMode.preference = 'light'
+  } else {
+    colorMode.preference = 'system'
+  }
+}
 
 const searchQuery = ref((route.query.q as string) || '')
 

@@ -16,7 +16,9 @@
       "Bash(sed -i '' \"s/message: ''Required''/message: ''Wajib diisi''/\" pages/login.vue)",
       "Bash(find /Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs -path *migrations* -type f -o -path *seeders* -type f)",
       "Bash(grep -E \"\\\\.\\(ts|js|json|yml|yaml|md\\)$\")",
-      "Bash(grep -E \"\\\\.\\(ts|vue|cjs|json\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|vue|cjs|json\\)$\")",
+      "Bash(grep -l \"Topbar\\\\|TopBar\\\\|Header\\\\|topbar\" /Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs/components/**/*.vue)",
+      "Bash(find /Users/muhammadazmiadhani/gitlab.ruangalgo.com/others/govdocs/pages/admin -type f -name *.vue)"
     ]
   }
 }
