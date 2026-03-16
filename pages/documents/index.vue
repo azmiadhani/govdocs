@@ -17,6 +17,7 @@
             @update:selected-types="onTypes"
             @update:selected-ministries="onMinistries"
             @reset="onReset"
+            @search="onFilterSearch"
           />
         </div>
       </aside>
@@ -38,7 +39,7 @@
               size="sm"
               icon="i-heroicons-sparkles"
               color="primary"
-              variant="soft"
+              :variant="isSmartMode ? 'solid' : 'soft'"
               label="Cari Cerdas"
               class="hidden sm:flex"
               @click="openSmartSearch"
@@ -47,7 +48,7 @@
               size="sm"
               icon="i-heroicons-sparkles"
               color="primary"
-              variant="soft"
+              :variant="isSmartMode ? 'solid' : 'soft'"
               class="sm:hidden"
               @click="openSmartSearch"
             />
@@ -68,6 +69,16 @@
             />
           </div>
         </div>
+
+        <!-- Smart Search Section -->
+        <SmartSearchSection
+          v-if="isSmartMode && q"
+          :loading="ssLoading"
+          :result="ssResult"
+          :error="ssError"
+          :query="ssLastQuery"
+          @dismiss="dismissSmartSearch"
+        />
 
         <!-- Loading skeletons -->
         <div v-if="pending">
@@ -108,70 +119,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Smart Search Modal -->
-    <UModal v-model="smartSearchOpen" :ui="{ width: 'max-w-3xl' }">
-      <UCard :ui="{ body: { padding: 'p-0' }, header: { padding: 'px-5 pt-5 pb-0' }, footer: { padding: 'p-0' } }">
-        <template #header>
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-primary-500 flex items-center justify-center shrink-0">
-                <UIcon name="i-heroicons-sparkles" class="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h2 class="font-semibold text-gray-900 dark:text-white text-base leading-tight">Pencarian Cerdas</h2>
-                <p class="text-xs text-gray-400">Tanyakan apa saja dalam bahasa natural</p>
-              </div>
-            </div>
-            <UButton icon="i-heroicons-x-mark" variant="ghost" color="gray" size="sm" @click="smartSearchOpen = false" />
-          </div>
-          <!-- Query input -->
-          <form @submit.prevent="runSmartSearch">
-            <div class="flex gap-2">
-              <UInput
-                v-model="smartQuery"
-                placeholder="Contoh: Peraturan terbaru tentang pengadaan barang dan jasa..."
-                icon="i-heroicons-magnifying-glass"
-                class="flex-1"
-                size="md"
-                autofocus
-                :disabled="ssLoading"
-              />
-              <UButton
-                type="submit"
-                size="md"
-                icon="i-heroicons-sparkles"
-                :loading="ssLoading"
-                :disabled="!smartQuery.trim()"
-              >
-                Cari
-              </UButton>
-            </div>
-          </form>
-        </template>
-
-        <!-- Results area -->
-        <div class="px-5 py-5 max-h-[65vh] overflow-y-auto">
-          <!-- Idle state -->
-          <div
-            v-if="!ssLoading && !ssResult && !ssError"
-            class="py-10 text-center text-gray-400"
-          >
-            <UIcon name="i-heroicons-magnifying-glass-circle" class="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p class="text-sm">Masukkan pertanyaan di atas untuk memulai pencarian semantik</p>
-            <p class="text-xs text-gray-300 mt-1">Sistem akan mencari dan merangkum dokumen yang relevan</p>
-          </div>
-
-          <SmartSearchResult
-            v-else
-            :loading="ssLoading"
-            :result="ssResult"
-            :error="ssError"
-            :query="ssLastQuery"
-          />
-        </div>
-      </UCard>
-    </UModal>
   </div>
 </template>
 
@@ -181,6 +128,7 @@ import type { Document } from '~/types'
 definePageMeta({ layout: 'public' })
 
 const route = useRoute()
+const router = useRouter()
 const limit = 12
 
 // URL-synced state
@@ -253,6 +201,7 @@ function syncUrl() {
   if (selectedTypes.value.length) query.type = selectedTypes.value[0]
   if (selectedMinistries.value.length) query.ministry = selectedMinistries.value[0]
   if (page.value > 1) query.page = page.value
+  if (route.query.mode) query.mode = route.query.mode
   internalNav = true
   navigateTo({ query }, { replace: true })
 }
@@ -269,20 +218,43 @@ function onReset() {
 
 onMounted(load)
 
-// Smart Search modal
-const smartSearchOpen = ref(false)
-const smartQuery = ref('')
+// Smart Search
+const isSmartMode = computed(() => route.query.mode === 'smart')
 const { loading: ssLoading, result: ssResult, error: ssError, lastQuery: ssLastQuery, search: ssSearch, clear: ssClear } = useSmartSearch()
 
-function openSmartSearch() {
-  // Pre-fill with current keyword search if any
-  if (q.value && !smartQuery.value) smartQuery.value = q.value
-  ssClear()
-  smartSearchOpen.value = true
+// Watch only mode changes — q changes never auto-trigger smart search
+watch(
+  () => route.query.mode,
+  (mode) => {
+    if (mode === 'smart' && route.query.q) {
+      ssSearch(route.query.q as string)
+    } else if (mode !== 'smart') {
+      ssClear()
+    }
+  },
+  { immediate: true },
+)
+
+// Re-run smart search only on explicit Enter press from FilterPanel
+function onFilterSearch(v: string) {
+  if (isSmartMode.value && v) ssSearch(v)
 }
 
-function runSmartSearch() {
-  ssSearch(smartQuery.value)
+function openSmartSearch() {
+  if (isSmartMode.value) {
+    // Already in smart mode — re-run search directly without URL change
+    if (q.value) ssSearch(q.value)
+    return
+  }
+  internalNav = true
+  router.push({ path: '/documents', query: { ...route.query, mode: 'smart' } })
+}
+
+function dismissSmartSearch() {
+  const { mode, ...restQuery } = route.query
+  ssClear()
+  internalNav = true
+  navigateTo({ query: restQuery }, { replace: true })
 }
 
 useHead({ title: computed(() => q.value ? `Hasil: "${q.value}"` : 'Dokumen') })

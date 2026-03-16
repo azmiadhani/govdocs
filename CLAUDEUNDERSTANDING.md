@@ -3,7 +3,7 @@
 # GovDocs AI — Complete System Understanding
 
 > Produced on: 2026-03-12 | Author: Claude Code (claude-sonnet-4-6)
-> Last updated: 2026-03-12 — Cache invalidation refactored: SCAN-based cacheDelPattern + invalidateDocumentCaches() utility across all document-mutating routes
+> Last updated: 2026-03-13 — Smart Search UI refactored: removed modal, now renders inline on /documents page via SmartSearchSection.vue; mode=smart query param drives smart search state
 
 ---
 
@@ -33,7 +33,7 @@ The core value loops are:
 | ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
 | Landing page with stats       | `/`                          | `/api/public/stats`, `/api/public/documents/latest`, `/api/public/popular-searches` |
 | Document search + filter      | `/documents`                 | `/api/public/documents`                                                             |
-| **Smart Search (semantic)**   | `/documents` (modal)         | **`POST /api/ai/smart-search`**                                                     |
+| **Smart Search (semantic)**   | `/documents?mode=smart&q=…`  | **`POST /api/ai/smart-search`**                                                     |
 | Document detail + PDF preview | `/documents/:id`             | `/api/public/documents/:id`                                                         |
 | About / FAQ / Contact         | `/about`, `/faq`, `/contact` | `/api/public/contact`                                                               |
 | Public changelog              | `/changelog`                 | `/api/public/changelog`                                                             |
@@ -531,6 +531,7 @@ Server-side Route Protection
 | `LoadingDots`           | `components/ui/LoadingDots.vue`              | Loading indicator                                     |
 | `MarkdownRenderer`      | `components/ui/MarkdownRenderer.vue`         | @nuxtjs/mdc markdown render                           |
 | **`SmartSearchResult`** | **`components/SmartSearchResult.vue`**       | **AI answer + document grid with highlight snippets** |
+| **`SmartSearchSection`** | **`components/SmartSearchSection.vue`**     | **Inline wrapper: header + dismiss button + SmartSearchResult; shown on /documents when mode=smart** |
 
 ### Composables
 

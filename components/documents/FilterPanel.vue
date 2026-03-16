@@ -3,13 +3,15 @@
     <!-- Search -->
     <div>
       <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pencarian</label>
-      <UInput
-        v-model="localQ"
-        placeholder="Cari dokumen..."
-        icon="i-heroicons-magnifying-glass"
-        size="sm"
-        @input="onSearch"
-      />
+      <form @submit.prevent="emit('search', localQ)">
+        <UInput
+          v-model="localQ"
+          placeholder="Cari dokumen..."
+          icon="i-heroicons-magnifying-glass"
+          size="sm"
+          @input="onSearch"
+        />
+      </form>
     </div>
 
     <!-- Sort -->
@@ -93,6 +95,7 @@ const emit = defineEmits<{
   (e: 'update:selectedTypes', v: string[]): void
   (e: 'update:selectedMinistries', v: string[]): void
   (e: 'reset'): void
+  (e: 'search', v: string): void
 }>()
 
 const TYPE_LABELS: Record<string, string> = {
