@@ -2,8 +2,8 @@ stages:
   - deploy_development
 
 variables:
-  SITUS: "erp-dev"
-  FOLDER: "erp-dev"
+  SITUS: "govdocs"
+  FOLDER: "govdocs"
 
 deploy_development:
   stage: deploy_development
