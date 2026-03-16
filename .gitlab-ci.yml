@@ -1,0 +1,22 @@
+stages:
+  - deploy_development
+
+variables:
+  SITUS: "erp-dev"
+  FOLDER: "erp-dev"
+
+deploy_development:
+  stage: deploy_development
+  tags:
+    - runner-local
+  script:
+    - mkdir -p /home/app/"$FOLDER"/
+    - git checkout main
+    - git pull origin main --rebase
+    - rsync --delete --exclude=.git --exclude=storage --exclude=.env --exclude=node_modules --exclude=tenants-env -arv $CI_PROJECT_DIR/ /home/app/"$FOLDER"
+    - cd /home/app/"$FOLDER" && npm install --force
+    - npm run build
+    - pm2 restart /home/app/pm2conf/govdocs/ecosystem.config.js
+    - sleep 10
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
